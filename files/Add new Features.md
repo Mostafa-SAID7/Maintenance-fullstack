@@ -1,5 +1,5 @@
 Car Maintenance Management System - Enhanced Documentation
-Multi-Platform Solution: ASP.NET Core 9 + Angular 19 + Flutter + Electron
+Multi-Platform Solution: ASP.NET Core 9 + Angular 19 + Flutter + Electron +PWA 
 Version: 2.0.0
 Last Updated: November 2025
 Architecture: Microservices + Clean Architecture + CQRS + Event Sourcing
