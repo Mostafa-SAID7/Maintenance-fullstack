@@ -1,0 +1,103 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  NODE_VERSION: '18.x'
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore src/CarMaintenance.Api/CarMaintenance.Api.csproj
+
+    - name: Build
+      run: dotnet build src/CarMaintenance.Api/CarMaintenance.Api.csproj --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test tests/CarMaintenance.UnitTests/CarMaintenance.UnitTests.csproj --no-restore --verbosity normal
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ClientApp/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd ClientApp
+        npm ci
+
+    - name: Lint
+      run: |
+        cd ClientApp
+        npm run lint
+
+    - name: Build
+      run: |
+        cd ClientApp
+        npm run build -- --configuration production
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: docker build -t carmaintenance-api .
+
+    - name: Test Docker image
+      run: |
+        docker run -d --name test-container -p 8080:80 carmaintenance-api
+        sleep 30
+        curl -f http://localhost:8080/health || exit 1
+        docker stop test-container
+        docker rm test-container
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/carmaintenance-api:latest .
+        docker push ${{ secrets.DOCKER_USERNAME }}/carmaintenance-api:latest
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production server..."
+        # Add your deployment commands here
+        # For example: ssh to server, pull image, restart containers, etc.

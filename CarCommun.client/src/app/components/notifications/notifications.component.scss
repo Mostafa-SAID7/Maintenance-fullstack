@@ -1,0 +1,115 @@
+.notifications-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  h2 {
+    margin: 0;
+    color: #333;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .unread-count {
+      background: #e0245e;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+
+    .btn-mark-all {
+      background: #1da1f2;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9em;
+
+      &:hover {
+        background: #1991db;
+      }
+    }
+  }
+}
+
+.notifications-list {
+  .notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &.unread {
+      background: #f8f9fa;
+      border-left: 4px solid #1da1f2;
+    }
+
+    &:hover {
+      background: #f5f8fa;
+    }
+
+    .notification-icon {
+      margin-right: 12px;
+      font-size: 1.5em;
+    }
+
+    .notification-content {
+      flex: 1;
+
+      .notification-title {
+        font-weight: 600;
+        color: #14171a;
+        margin-bottom: 4px;
+      }
+
+      .notification-message {
+        color: #657786;
+        margin-bottom: 4px;
+        font-size: 0.9em;
+      }
+
+      .notification-time {
+        font-size: 0.8em;
+        color: #aab8c2;
+      }
+    }
+
+    .notification-actions {
+      .unread-indicator {
+        width: 8px;
+        height: 8px;
+        background: #1da1f2;
+        border-radius: 50%;
+      }
+    }
+  }
+
+  .no-notifications {
+    text-align: center;
+    padding: 40px 20px;
+    color: #657786;
+
+    p {
+      margin: 0;
+      font-size: 1.1em;
+    }
+  }
+}
