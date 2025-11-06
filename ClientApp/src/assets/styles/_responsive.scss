@@ -1,0 +1,591 @@
+// ============= RESPONSIVE DESIGN STYLES =============
+
+// ============= BREAKPOINTS =============
+// Mobile: < 768px
+// Tablet: 768px - 1023px  
+// Desktop: 1024px+
+// Large Desktop: 1280px+
+
+// ============= MOBILE FIRST RESPONSIVE UTILITIES =============
+
+// ============= MOBILE STYLES (< 768px) =============
+@media (max-width: 767px) {
+  // ============= LAYOUT ADJUSTMENTS =============
+  .container {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+  
+  .grid-responsive {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .flex-responsive {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  // ============= SIDEBAR BEHAVIOR =============
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: var(--z-modal);
+    
+    &.mobile-open {
+      transform: translateX(0);
+    }
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-modal) - 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-normal), visibility var(--transition-normal);
+    
+    &.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+  
+  // ============= HEADER ADJUSTMENTS =============
+  .header {
+    height: var(--spacing-xl);
+    padding: 0 var(--spacing-md);
+    
+    .header-nav {
+      display: none;
+    }
+    
+    .header-brand .brand-title {
+      font-size: var(--font-size-lg);
+    }
+  }
+  
+  // ============= MOBILE MENU BUTTON =============
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--spacing-xl);
+    height: var(--spacing-xl);
+    border: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    
+    &:hover {
+      background-color: var(--surface-hover);
+    }
+    
+    .hamburger-icon {
+      width: var(--spacing-md);
+      height: var(--spacing-sm);
+      position: relative;
+      
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: var(--text-primary);
+        transition: transform var(--transition-fast);
+      }
+      
+      &::before {
+        top: 0;
+      }
+      
+      &::after {
+        bottom: 0;
+      }
+    }
+    
+    &.active .hamburger-icon::before {
+      transform: translateY(3px) rotate(45deg);
+    }
+    
+    &.active .hamburger-icon::after {
+      transform: translateY(-3px) rotate(-45deg);
+    }
+  }
+  
+  // ============= CARD ADJUSTMENTS =============
+  .card {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .stat-card {
+    padding: var(--spacing-lg);
+    
+    .stat-value {
+      font-size: var(--font-size-2xl);
+    }
+  }
+  
+  // ============= TABLE RESPONSIVE =============
+  .table-responsive {
+    margin: 0 calc(-1 * var(--spacing-md));
+    padding: 0 var(--spacing-md);
+    
+    .table {
+      font-size: var(--font-size-sm);
+      
+      th,
+      td {
+        padding: var(--spacing-sm);
+      }
+    }
+  }
+  
+  // ============= MODAL ADJUSTMENTS =============
+  .modal {
+    margin: var(--spacing-md);
+    width: calc(100% - 2 * var(--spacing-md));
+    max-height: calc(100vh - 2 * var(--spacing-md));
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+      padding: var(--spacing-md);
+    }
+    
+    .modal-footer {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+  
+  // ============= FORM ADJUSTMENTS =============
+  .form-group {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .form-control {
+    font-size: 16px; // Prevent zoom on iOS
+  }
+  
+  // ============= BUTTON ADJUSTMENTS =============
+  .btn {
+    min-height: 44px; // Minimum touch target size
+    font-size: var(--font-size-base);
+  }
+  
+  .btn-group {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    
+    .btn {
+      width: 100%;
+    }
+  }
+  
+  // ============= TYPOGRAPHY RESPONSIVE =============
+  .text-responsive {
+    h1 { @include heading-3; }
+    h2 { @include heading-4; }
+    h3 { @include heading-5; }
+    h4 { @include heading-6; }
+    h5, h6 { @include body-text; }
+  }
+  
+  // ============= VEHICLE CARD RESPONSIVE =============
+  .vehicle-card {
+    .vehicle-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+    }
+    
+    .vehicle-status {
+      align-self: flex-end;
+    }
+  }
+  
+  // ============= MAINTENANCE TIMELINE RESPONSIVE =============
+  .maintenance-timeline {
+    padding-left: var(--spacing-lg);
+    
+    .timeline-item::before {
+      left: calc(-1 * var(--spacing-lg) - var(--spacing-xs));
+      width: var(--spacing-sm);
+      height: var(--spacing-sm);
+    }
+  }
+  
+  // ============= BREADCRUMB RESPONSIVE =============
+  .breadcrumb {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: var(--spacing-xs);
+    
+    .breadcrumb-item {
+      flex-shrink: 0;
+    }
+  }
+  
+  // ============= HIDE/SHOW UTILITIES =============
+  .mobile-hidden { display: none !important; }
+  .mobile-only { display: block !important; }
+  .mobile-flex { display: flex !important; }
+}
+
+// ============= TABLET STYLES (768px - 1023px) =============
+@media (min-width: 768px) and (max-width: 1023px) {
+  .container {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+  
+  .stat-card {
+    .stat-value {
+      font-size: var(--font-size-3xl);
+    }
+  }
+  
+  // ============= TABLE RESPONSIVE =============
+  .table-responsive {
+    .table {
+      th,
+      td {
+        padding: var(--spacing-md);
+      }
+    }
+  }
+  
+  // ============= FORM LAYOUT =============
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  // ============= SIDEBAR BEHAVIOR =============
+  .sidebar {
+    width: var(--sidebar-width-collapsed);
+    transition: width var(--transition-normal);
+    
+    &:hover {
+      width: var(--sidebar-width);
+    }
+    
+    .nav-text {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity var(--transition-fast);
+    }
+    
+    &:hover .nav-text {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+  
+  // ============= HIDE/SHOW UTILITIES =============
+  .tablet-hidden { display: none !important; }
+  .tablet-only { display: block !important; }
+  .tablet-flex { display: flex !important; }
+}
+
+// ============= DESKTOP STYLES (1024px+) =============
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  // ============= DESKTOP LAYOUT =============
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  
+  .main-content {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--transition-normal);
+    
+    .sidebar.collapsed + & {
+      margin-left: var(--sidebar-width-collapsed);
+    }
+  }
+  
+  // ============= HIDE/SHOW UTILITIES =============
+  .desktop-hidden { display: none !important; }
+  .desktop-only { display: block !important; }
+  .desktop-flex { display: flex !important; }
+}
+
+// ============= LARGE DESKTOP STYLES (1280px+) =============
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1400px;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  
+  // ============= HIDE/SHOW UTILITIES =============
+  .large-hidden { display: none !important; }
+  .large-only { display: block !important; }
+  .large-flex { display: flex !important; }
+}
+
+// ============= ULTRA-WIDE DESKTOP STYLES (1600px+) =============
+@media (min-width: 1600px) {
+  .container {
+    max-width: 1600px;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+// ============= PRINT STYLES =============
+@media print {
+  // ============= HIDE ELEMENTS =============
+  .no-print,
+  .sidebar,
+  .header-actions,
+  .btn,
+  nav,
+  .breadcrumb,
+  .pagination {
+    display: none !important;
+  }
+  
+  // ============= LAYOUT =============
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .container {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  
+  // ============= TYPOGRAPHY =============
+  body {
+    font-size: 12pt;
+    line-height: 1.4;
+    color: black;
+    background: white;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    color: black;
+  }
+  
+  p, li {
+    orphans: 3;
+    widows: 3;
+  }
+  
+  // ============= TABLES =============
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    th,
+    td {
+      border: 1px solid #000;
+      padding: 8pt;
+    }
+    
+    th {
+      background-color: #f0f0f0 !important;
+      font-weight: bold;
+    }
+  }
+  
+  // ============= CARDS =============
+  .card {
+    border: 1px solid #000;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+  
+  // ============= LINKS =============
+  a {
+    color: black;
+    text-decoration: underline;
+  }
+  
+  // ============= PAGE BREAKS =============
+  .page-break {
+    page-break-before: always;
+  }
+  
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+}
+
+// ============= TOUCH DEVICE OPTIMIZATIONS =============
+@media (hover: none) and (pointer: coarse) {
+  // ============= LARGER TOUCH TARGETS =============
+  .btn,
+  .nav-link,
+  .form-control,
+  .card {
+    min-height: 44px;
+  }
+  
+  // ============= REDUCE HOVER EFFECTS =============
+  .card-hover:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .btn:hover:not(:disabled) {
+    transform: none;
+  }
+  
+  // ============= TOUCH-FRIENDLY SPACING =============
+  .flex-gap {
+    gap: var(--spacing-lg);
+  }
+  
+  .grid-gap {
+    gap: var(--spacing-lg);
+  }
+}
+
+// ============= HIGH DPI DISPLAYS =============
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  // ============= SHARPER BORDERS =============
+  .border {
+    border-width: 0.5px;
+  }
+  
+  // ============= SHARPER ICONS =============
+  .icon {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+// ============= REDUCED MOTION =============
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ============= DARK MODE RESPONSIVE =============
+@media (max-width: 767px) {
+  [data-theme="dark"] {
+    .sidebar-overlay {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+  }
+}
+
+// ============= ACCESSIBILITY ENHANCEMENTS =============
+@media (prefers-reduced-motion: no-preference) {
+  // ============= SMOOTH SCROLLING =============
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  // ============= ENHANCED TRANSITIONS =============
+  .transition-enhanced {
+    transition: all var(--transition-normal);
+  }
+}
+
+// ============= FOCUS MANAGEMENT =============
+@media (max-width: 767px) {
+  // ============= LARGER FOCUS RINGS ON MOBILE =============
+  .btn:focus,
+  .form-control:focus,
+  .nav-link:focus {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+// ============= LANDSCAPE/ORIENTATION STYLES =============
+@media (orientation: landscape) and (max-height: 500px) {
+  .header {
+    height: var(--spacing-lg);
+  }
+  
+  .sidebar {
+    width: var(--sidebar-width-collapsed);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+// ============= CUSTOM PROPERTIES FOR RESPONSIVE DESIGN =============
+:root {
+  --container-padding-mobile: 1rem;
+  --container-padding-tablet: 2rem;
+  --container-padding-desktop: 3rem;
+  --sidebar-width-mobile: 100vw;
+  --sidebar-width-tablet: 16rem;
+  --sidebar-width-desktop: 16rem;
+  --header-height-mobile: 3rem;
+  --header-height-tablet: 4rem;
+  --header-height-desktop: 4rem;
+}

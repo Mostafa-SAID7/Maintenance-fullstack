@@ -1,0 +1,365 @@
+// ============= DARK THEME STYLES =============
+
+// ============= OVERRIDE VARIABLES FOR DARK THEME =============
+[data-theme="dark"] {
+  // ============= COLORS =============
+  --primary-color: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-light: #1e3a8a;
+  --primary-dark: #1d4ed8;
+  
+  --secondary-color: #94a3b8;
+  --secondary-hover: #cbd5e1;
+  --secondary-light: #374151;
+  --secondary-dark: #f3f4f6;
+  
+  --accent-color: #34d399;
+  --accent-hover: #10b981;
+  --accent-light: #065f46;
+  --accent-dark: #047857;
+  
+  --background-color: #111827;
+  --surface-color: #1f2937;
+  --surface-hover: #374151;
+  --border-color: #374151;
+  --border-light: #4b5563;
+  
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --text-inverse: #1f2937;
+  
+  // ============= COMPONENT SPECIFIC DARK STYLES =============
+  --header-bg: var(--background-color);
+  --header-text: var(--text-primary);
+  
+  --sidebar-bg: var(--surface-color);
+  --sidebar-text: var(--text-primary);
+  --sidebar-hover: var(--surface-hover);
+  --sidebar-active: rgba(96, 165, 250, 0.1);
+  
+  --card-bg: var(--surface-color);
+  --card-border: var(--border-color);
+  
+  --input-bg: var(--background-color);
+  --input-border: var(--border-color);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-muted);
+  
+  --table-bg: var(--surface-color);
+  --table-header-bg: var(--background-color);
+  --table-hover: var(--surface-hover);
+  --table-stripe: var(--background-color);
+}
+
+// ============= AUTOMOTIVE DARK THEME =============
+[data-theme="dark"][data-mode="automotive"] {
+  --primary-color: #3b82f6;
+  --secondary-color: #64748b;
+  --accent-color: #10b981;
+  
+  --background-color: #0f172a;
+  --surface-color: #1e293b;
+  --surface-hover: #334155;
+  
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+}
+
+// ============= HIGH CONTRAST DARK THEME =============
+[data-theme="dark"][data-contrast="high"] {
+  --primary-color: #ffffff;
+  --background-color: #000000;
+  --text-primary: #ffffff;
+  --border-color: #ffffff;
+  
+  --focus-ring: 0 0 0 3px #ffffff;
+}
+
+// ============= DARK THEME COMPONENTS =============
+[data-theme="dark"] {
+  // ============= CARDS =============
+  .card {
+    background-color: var(--surface-color);
+    border-color: var(--border-color);
+  }
+  
+  // ============= BUTTONS =============
+  .btn-secondary {
+    background-color: var(--surface-color);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    
+    &:hover:not(:disabled) {
+      background-color: var(--surface-hover);
+    }
+  }
+  
+  // ============= INPUTS =============
+  .form-control {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--input-text);
+    
+    &::placeholder {
+      color: var(--input-placeholder);
+    }
+    
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+  }
+  
+  // ============= TABLES =============
+  .table {
+    background-color: var(--table-bg);
+    
+    th {
+      background-color: var(--table-header-bg);
+      color: var(--text-primary);
+    }
+    
+    tbody tr {
+      &:hover {
+        background-color: var(--table-hover);
+      }
+      
+      &.striped {
+        &:nth-child(even) {
+          background-color: var(--table-stripe);
+        }
+      }
+    }
+  }
+  
+  // ============= NAVIGATION =============
+  .sidebar {
+    background-color: var(--sidebar-bg);
+    border-color: var(--border-color);
+    
+    .nav-link {
+      color: var(--sidebar-text);
+      
+      &:hover {
+        background-color: var(--sidebar-hover);
+      }
+      
+      &.active {
+        background-color: var(--sidebar-active);
+        color: var(--primary-color);
+      }
+    }
+  }
+  
+  // ============= MODALS =============
+  .modal {
+    background-color: var(--background-color);
+    
+    .modal-header,
+    .modal-footer {
+      border-color: var(--border-color);
+    }
+  }
+  
+  // ============= BREADCRUMB =============
+  .breadcrumb {
+    .breadcrumb-item {
+      color: var(--text-secondary);
+      
+      &.active {
+        color: var(--text-primary);
+      }
+    }
+  }
+  
+  // ============= TOOLTIPS =============
+  .tooltip {
+    &::before {
+      background-color: var(--text-primary);
+      color: var(--background-color);
+    }
+  }
+  
+  // ============= LOADING SPINNERS =============
+  .spinner {
+    border-color: var(--border-color);
+    border-top-color: var(--primary-color);
+  }
+  
+  // ============= CHART OVERRIDES =============
+  .chart-container {
+    background-color: var(--surface-color);
+    
+    .chart-title {
+      color: var(--text-primary);
+    }
+    
+    .chart-legend {
+      color: var(--text-secondary);
+    }
+  }
+}
+
+// ============= DARK THEME OVERRIDES FOR SPECIFIC COMPONENTS =============
+[data-theme="dark"] {
+  // ============= VEHICLE CARDS =============
+  .vehicle-card {
+    .vehicle-info .vehicle-details {
+      color: var(--text-secondary);
+    }
+    
+    .vehicle-status {
+      &.status-active {
+        background-color: rgba(52, 211, 153, 0.1);
+        color: #34d399;
+      }
+      
+      &.status-maintenance {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+      }
+      
+      &.status-overdue {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+      }
+    }
+  }
+  
+  // ============= MAINTENANCE TIMELINE =============
+  .maintenance-timeline {
+    &::before {
+      background-color: var(--border-color);
+    }
+    
+    .timeline-item::before {
+      background-color: var(--primary-color);
+    }
+    
+    .timeline-content {
+      background-color: var(--surface-color);
+      border-color: var(--border-color);
+    }
+    
+    .timeline-date {
+      color: var(--text-muted);
+    }
+  }
+  
+  // ============= DASHBOARD STATS =============
+  .stat-card {
+    .stat-label {
+      color: var(--text-secondary);
+    }
+    
+    .stat-change {
+      &.positive {
+        color: #34d399;
+      }
+      
+      &.negative {
+        color: #ef4444;
+      }
+    }
+  }
+  
+  // ============= ALERTS =============
+  .alert {
+    &.alert-success {
+      background-color: rgba(52, 211, 153, 0.1);
+      border-color: #34d399;
+      color: #34d399;
+    }
+    
+    &.alert-warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+    
+    &.alert-error {
+      background-color: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+    
+    &.alert-info {
+      background-color: rgba(96, 165, 250, 0.1);
+      border-color: #60a5fa;
+      color: #60a5fa;
+    }
+  }
+  
+  // ============= BADGES =============
+  .badge {
+    &.badge-success {
+      background-color: rgba(52, 211, 153, 0.1);
+      color: #34d399;
+    }
+    
+    &.badge-warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+    
+    &.badge-error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+    
+    &.badge-primary {
+      background-color: rgba(96, 165, 250, 0.1);
+      color: #60a5fa;
+    }
+  }
+}
+
+// ============= DARK THEME MEDIA QUERIES =============
+@media (prefers-color-scheme: dark) {
+  // Auto dark mode based on system preference
+  :root:not([data-theme]) {
+    color-scheme: dark;
+  }
+  
+  [data-theme="auto"] {
+    --primary-color: #60a5fa;
+    --primary-hover: #3b82f6;
+    --primary-light: #1e3a8a;
+    --primary-dark: #1d4ed8;
+    
+    --secondary-color: #94a3b8;
+    --secondary-hover: #cbd5e1;
+    --secondary-light: #374151;
+    --secondary-dark: #f3f4f6;
+    
+    --accent-color: #34d399;
+    --accent-hover: #10b981;
+    --accent-light: #065f46;
+    --accent-dark: #047857;
+    
+    --background-color: #111827;
+    --surface-color: #1f2937;
+    --surface-hover: #374151;
+    --border-color: #374151;
+    --border-light: #4b5563;
+    
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --text-inverse: #1f2937;
+  }
+}
+
+// ============= PRINT DARK MODE =============
+@media print {
+  [data-theme="dark"] {
+    color-scheme: light;
+    
+    * {
+      background-color: white !important;
+      color: black !important;
+      border-color: black !important;
+    }
+  }
+}

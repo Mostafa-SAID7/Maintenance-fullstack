@@ -1,16 +1,18 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule } from '@angular/router';
+import { SidebarComponent } from '../sidebar/sidebar.component';
+import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule],
+  imports: [CommonModule, RouterOutlet, RouterModule, SidebarComponent, NotificationBellComponent],
   template: `
     <div class="main-layout flex h-screen bg-gray-50 dark:bg-gray-900">
-      <!-- Sidebar -->
+      <!-- Desktop Sidebar -->
       <app-sidebar class="hidden lg:flex lg:flex-shrink-0"></app-sidebar>
 
       <!-- Mobile sidebar overlay -->
@@ -49,8 +51,24 @@ import { takeUntil } from 'rxjs/operators';
           </button>
           <div class="flex-1 px-4 flex justify-between">
             <div class="flex-1 flex items-center">
-              <!-- Breadcrumb will be rendered here -->
-              <app-breadcrumb class="hidden md:block"></app-breadcrumb>
+              <!-- Breadcrumb placeholder -->
+              <nav class="flex" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                  <li class="inline-flex items-center">
+                    <a routerLink="/" class="inline-flex items-center text-sm font-medium text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-500">
+                      Home
+                    </a>
+                  </li>
+                  <li>
+                    <div class="flex items-center">
+                      <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                      <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Dashboard</span>
+                    </div>
+                  </li>
+                </ol>
+              </nav>
             </div>
             <div class="ml-4 flex items-center md:ml-6 space-x-4">
               <!-- Notification Bell -->
@@ -87,8 +105,8 @@ import { takeUntil } from 'rxjs/operators';
 
                 <!-- Dropdown menu -->
                 <div *ngIf="userMenuOpen" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                  <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Your Profile</a>
-                  <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                  <a routerLink="/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Your Profile</a>
+                  <a routerLink="/settings" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
                   <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Sign out</a>
                 </div>
               </div>
