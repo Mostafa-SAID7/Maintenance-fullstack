@@ -5,8 +5,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CarMaintenance.Api.Interfaces;
+using CarMaintenance.Api.DTOs;
 using CarMaintenance.Api.Models;
-using CarMaintenance.Shared.DTOs.Auth;
 
 namespace CarMaintenance.Api.Services
 {
@@ -16,7 +16,10 @@ namespace CarMaintenance.Api.Services
         private readonly SignInManager<AppUser> _signInManager;
         private readonly IConfiguration _configuration;
 
-        public AuthService(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IConfiguration configuration)
+        public AuthService(
+            UserManager<AppUser> userManager,
+            SignInManager<AppUser> signInManager,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -36,11 +39,22 @@ namespace CarMaintenance.Api.Services
             user.LastLoginAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
 
-            return await GenerateTokenAsync(user);
+            var token = await GenerateJwtToken(user);
+            return new TokenDto
+            {
+                Token = token,
+                UserId = user.Id,
+                UserName = user.UserName!,
+                Email = user.Email!
+            };
         }
 
-        public async Task<TokenDto> RegisterAsync(RegisterDto registerDto)
+        public async Task<TokenDto?> RegisterAsync(RegisterDto registerDto)
         {
+            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
+            if (existingUser != null)
+                throw new InvalidOperationException("User already exists");
+
             var user = new AppUser
             {
                 UserName = registerDto.Email,
@@ -51,52 +65,35 @@ namespace CarMaintenance.Api.Services
 
             var result = await _userManager.CreateAsync(user, registerDto.Password);
             if (!result.Succeeded)
-                throw new Exception("User registration failed");
+                throw new InvalidOperationException(string.Join(", ", result.Errors.Select(e => e.Description)));
 
-            return await GenerateTokenAsync(user);
+            var token = await GenerateJwtToken(user);
+            return new TokenDto
+            {
+                Token = token,
+                UserId = user.Id,
+                UserName = user.UserName!,
+                Email = user.Email!
+            };
         }
 
-        public async Task<bool> ValidateTokenAsync(string token)
+        public async Task<TokenDto?> RefreshTokenAsync(TokenDto tokenDto)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? "default-secret-key");
-
             try
             {
-                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                var principal = GetPrincipalFromExpiredToken(tokenDto.Token);
+                var user = await _userManager.FindByIdAsync(principal.Identity!.Name!);
+                if (user == null)
+                    return null;
+
+                var newToken = await GenerateJwtToken(user);
+                return new TokenDto
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero
-                }, out SecurityToken validatedToken);
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<string?> GetUserIdFromTokenAsync(string token)
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? "default-secret-key");
-
-            try
-            {
-                var claimsPrincipal = tokenHandler.ValidateToken(token, new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero
-                }, out SecurityToken validatedToken);
-
-                return claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    Token = newToken,
+                    UserId = user.Id,
+                    UserName = user.UserName!,
+                    Email = user.Email!
+                };
             }
             catch
             {
@@ -104,39 +101,74 @@ namespace CarMaintenance.Api.Services
             }
         }
 
-        private async Task<TokenDto> GenerateTokenAsync(AppUser user)
+        public async Task<bool> LogoutAsync(string userId)
         {
-            var claims = new[]
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            // In a real implementation, you would invalidate the refresh token
+            // For now, we'll just return true
+            return true;
+        }
+
+        public async Task<bool> ValidateTokenAsync(string token)
+        {
+            try
+            {
+                var principal = GetPrincipalFromExpiredToken(token);
+                return principal.Identity != null && principal.Identity.IsAuthenticated;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<string> GenerateJwtToken(AppUser user)
+        {
+            var jwtSettings = _configuration.GetSection("JWT");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Email, user.Email ?? "")
+                new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString())
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "default-secret-key"));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expiration = DateTime.UtcNow.AddHours(1);
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: jwtSettings["ValidIssuer"],
+                audience: jwtSettings["ValidAudience"],
                 claims: claims,
-                expires: expiration,
-                signingCredentials: creds
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials
             );
 
-            return new TokenDto
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
             {
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
-                RefreshToken = Guid.NewGuid().ToString(),
-                Expiration = expiration,
-                UserId = user.Id,
-                Email = user.Email ?? "",
-                FirstName = user.FirstName,
-                LastName = user.LastName
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidAudience = _configuration["JWT:ValidAudience"],
+                ValidIssuer = _configuration["JWT:ValidIssuer"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!)),
+                ValidateLifetime = false // Allow expired tokens
             };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out _);
+            return principal;
         }
     }
 }

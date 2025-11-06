@@ -1,15 +1,16 @@
-using CarMaintenance.Shared.DTOs.Notifications;
+using CarMaintenance.Api.DTOs;
 
 namespace CarMaintenance.Api.Interfaces
 {
     public interface INotificationService
     {
-        Task<IEnumerable<NotificationDto>> GetAllAsync();
+        Task<PagedResult<NotificationDto>> GetAllAsync(int page = 1, int pageSize = 10);
         Task<NotificationDto?> GetByIdAsync(int id);
-        Task<IEnumerable<NotificationDto>> GetByUserIdAsync(string userId);
-        Task<NotificationDto> CreateAsync(NotificationDto notificationDto);
-        Task<bool> MarkAsReadAsync(int id);
+        Task<PagedResult<NotificationDto>> GetByUserIdAsync(string userId, int page = 1, int pageSize = 10);
+        Task<NotificationDto?> CreateAsync(NotificationDto notificationDto);
+        Task<NotificationDto?> MarkAsReadAsync(int id);
         Task<bool> DeleteAsync(int id);
-        Task SendNotificationAsync(string userId, string message, string type);
+        Task SendMaintenanceReminderAsync(MaintenanceReminderDto reminder);
+        Task SendPredictiveAlertAsync(PredictiveAlertDto alert);
     }
 }

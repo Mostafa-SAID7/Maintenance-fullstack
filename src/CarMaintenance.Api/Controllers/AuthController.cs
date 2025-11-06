@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using CarMaintenance.Application.Services;
-using CarMaintenance.Shared.DTOs.Auth;
+using CarMaintenance.Api.Interfaces;
+using CarMaintenance.Api.DTOs;
 
 namespace CarMaintenance.Api.Controllers
 {
@@ -18,18 +18,52 @@ namespace CarMaintenance.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            var result = await _authService.LoginAsync(loginDto);
-            if (result == null)
-                return Unauthorized();
+            try
+            {
+                var result = await _authService.LoginAsync(loginDto);
+                if (result == null)
+                    return Unauthorized(new { message = "Invalid login credentials" });
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            var result = await _authService.RegisterAsync(registerDto);
-            return Ok(result);
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var result = await _authService.RegisterAsync(registerDto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenDto tokenDto)
+        {
+            try
+            {
+                var result = await _authService.RefreshTokenAsync(tokenDto);
+                if (result == null)
+                    return Unauthorized();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

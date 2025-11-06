@@ -18,14 +18,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Testcontainers.SqlEdge" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CarMaintenance.Api\CarMaintenance.Api.csproj" />
-    <ProjectReference Include="..\CarMaintenance.Application\CarMaintenance.Application.csproj" />
-    <ProjectReference Include="..\CarMaintenance.Domain\CarMaintenance.Domain.csproj" />
-    <ProjectReference Include="..\CarMaintenance.Infrastructure\CarMaintenance.Infrastructure.csproj" />
-    <ProjectReference Include="..\CarMaintenance.Shared\CarMaintenance.Shared.csproj" />
+    <ProjectReference Include="..\..\src\CarMaintenance.Api\CarMaintenance.Api.csproj" />
+    <ProjectReference Include="..\CarMaintenance.UnitTests\CarMaintenance.UnitTests.csproj" />
   </ItemGroup>
 
 </Project>
