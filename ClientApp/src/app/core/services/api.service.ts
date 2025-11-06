@@ -4,6 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { APP_CONSTANTS } from '../constants/app.constants';
+import { ErrorHandlerService } from './error-handler.service';
 
 export interface HttpOptions {
   headers?: HttpHeaders | { [header: string]: string | string[] };
@@ -19,60 +20,78 @@ export interface HttpOptions {
 export class ApiService {
   private readonly baseUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private errorHandler: ErrorHandlerService
+  ) {}
 
   /**
-   * GET request
+   * GET request with enhanced error handling
    */
   get<T>(endpoint: string, options?: HttpOptions): Observable<T> {
     return this.http.get<T>(`${this.baseUrl}${endpoint}`, options)
       .pipe(
         retry(options?.retry || APP_CONSTANTS.RETRY_ATTEMPTS),
-        catchError(this.handleError)
+        catchError((error: HttpErrorResponse) => {
+          this.errorHandler.handleHttpError(error, `GET ${endpoint}`);
+          return throwError(() => error);
+        })
       );
   }
 
   /**
-   * POST request
+   * POST request with enhanced error handling
    */
   post<T>(endpoint: string, data?: any, options?: HttpOptions): Observable<T> {
     return this.http.post<T>(`${this.baseUrl}${endpoint}`, data, options)
       .pipe(
         retry(options?.retry || APP_CONSTANTS.RETRY_ATTEMPTS),
-        catchError(this.handleError)
+        catchError((error: HttpErrorResponse) => {
+          this.errorHandler.handleHttpError(error, `POST ${endpoint}`);
+          return throwError(() => error);
+        })
       );
   }
 
   /**
-   * PUT request
+   * PUT request with enhanced error handling
    */
   put<T>(endpoint: string, data?: any, options?: HttpOptions): Observable<T> {
     return this.http.put<T>(`${this.baseUrl}${endpoint}`, data, options)
       .pipe(
         retry(options?.retry || APP_CONSTANTS.RETRY_ATTEMPTS),
-        catchError(this.handleError)
+        catchError((error: HttpErrorResponse) => {
+          this.errorHandler.handleHttpError(error, `PUT ${endpoint}`);
+          return throwError(() => error);
+        })
       );
   }
 
   /**
-   * PATCH request
+   * PATCH request with enhanced error handling
    */
   patch<T>(endpoint: string, data?: any, options?: HttpOptions): Observable<T> {
     return this.http.patch<T>(`${this.baseUrl}${endpoint}`, data, options)
       .pipe(
         retry(options?.retry || APP_CONSTANTS.RETRY_ATTEMPTS),
-        catchError(this.handleError)
+        catchError((error: HttpErrorResponse) => {
+          this.errorHandler.handleHttpError(error, `PATCH ${endpoint}`);
+          return throwError(() => error);
+        })
       );
   }
 
   /**
-   * DELETE request
+   * DELETE request with enhanced error handling
    */
   delete<T>(endpoint: string, options?: HttpOptions): Observable<T> {
     return this.http.delete<T>(`${this.baseUrl}${endpoint}`, options)
       .pipe(
         retry(options?.retry || APP_CONSTANTS.RETRY_ATTEMPTS),
-        catchError(this.handleError)
+        catchError((error: HttpErrorResponse) => {
+          this.errorHandler.handleHttpError(error, `DELETE ${endpoint}`);
+          return throwError(() => error);
+        })
       );
   }
 
@@ -93,7 +112,12 @@ export class ApiService {
       headers: new HttpHeaders({
         'Accept': 'application/json'
       })
-    });
+    }).pipe(
+      catchError((error: HttpErrorResponse) => {
+        this.errorHandler.handleHttpError(error, `Upload ${endpoint}`);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
@@ -106,7 +130,10 @@ export class ApiService {
         'Accept': 'application/octet-stream'
       })
     }).pipe(
-      catchError(this.handleError)
+      catchError((error: HttpErrorResponse) => {
+        this.errorHandler.handleHttpError(error, `Download ${endpoint}`);
+        return throwError(() => error);
+      })
     );
   }
 
@@ -157,25 +184,7 @@ export class ApiService {
    * Handle HTTP errors
    */
   private handleError = (error: HttpErrorResponse) => {
-    let errorMessage = 'An unknown error occurred';
-    
-    if (error.error instanceof ErrorEvent) {
-      // Client-side error
-      errorMessage = `Client Error: ${error.error.message}`;
-    } else {
-      // Server-side error
-      if (error.error?.message) {
-        errorMessage = error.error.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      } else if (error.status === 0) {
-        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
-      } else {
-        errorMessage = `Server Error ${error.status}: ${error.statusText}`;
-      }
-    }
-    
-    console.error('API Service Error:', error);
-    return throwError(() => new Error(errorMessage));
+    this.errorHandler.handleHttpError(error);
+    return throwError(() => error);
   };
 }

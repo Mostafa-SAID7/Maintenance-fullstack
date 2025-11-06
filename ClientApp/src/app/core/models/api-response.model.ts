@@ -1,9 +1,9 @@
 export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errors?: string[];
-  timestamp: string;
+  Success: boolean;
+  Data?: T | null;
+  Message?: string;
+  Errors?: string[];
+  Timestamp: string;
 }
 
 export interface PaginatedResponse<T> {

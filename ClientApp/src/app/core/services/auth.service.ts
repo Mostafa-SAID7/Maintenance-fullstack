@@ -51,9 +51,9 @@ export class AuthService {
     return this.http.post<ApiResponse<TokenResponse>>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap(response => {
-          if (response.success && response.data) {
-            this.setAuthData(response.data);
-            this.updateCurrentUser(response.data);
+          if (response.Success && response.Data) {
+            this.setAuthData(response.Data);
+            this.updateCurrentUser(response.Data);
           }
         }),
         catchError(this.handleError)
@@ -67,9 +67,9 @@ export class AuthService {
     return this.http.post<ApiResponse<TokenResponse>>(`${this.apiUrl}/register`, userData)
       .pipe(
         tap(response => {
-          if (response.success && response.data) {
-            this.setAuthData(response.data);
-            this.updateCurrentUser(response.data);
+          if (response.Success && response.Data) {
+            this.setAuthData(response.Data);
+            this.updateCurrentUser(response.Data);
           }
         }),
         catchError(this.handleError)
@@ -89,9 +89,9 @@ export class AuthService {
       refreshToken
     }).pipe(
       tap(response => {
-        if (response.success && response.data) {
-          this.setAuthData(response.data);
-          this.updateCurrentUser(response.data);
+        if (response.Success && response.Data) {
+          this.setAuthData(response.Data);
+          this.updateCurrentUser(response.Data);
         }
       }),
       catchError(error => {
@@ -138,14 +138,14 @@ export class AuthService {
    */
   hasRole(role: string): boolean {
     const user = this.getCurrentUser();
-    return user?.roles?.includes(role) || false;
+    return user?.role === role;
   }
 
   /**
    * Get authentication token
    */
   getToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   }
 
   /**
@@ -162,8 +162,8 @@ export class AuthService {
     return this.http.put<ApiResponse<User>>(`${environment.apiUrl}/users/profile`, userData)
       .pipe(
         tap(response => {
-          if (response.success && response.data) {
-            this.updateCurrentUserFromUser(response.data);
+          if (response.Success && response.Data) {
+            this.updateCurrentUserFromUser(response.Data);
           }
         }),
         catchError(this.handleError)
@@ -201,42 +201,41 @@ export class AuthService {
   }
 
   private setAuthData(tokenData: TokenResponse): void {
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokenData.token);
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, tokenData.token);
     localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokenData.refreshToken);
     localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, tokenData.expiresAt.toISOString());
-    localStorage.setItem(STORAGE_KEYS.USER_EMAIL, tokenData.email);
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify({ email: tokenData.email }));
   }
 
   private clearAuthData(): void {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
-    localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
   }
 
   private updateCurrentUser(tokenData: TokenResponse): void {
     const user: User = {
-      id: '',
+      id: 0, // This would be populated by the backend in a real scenario
       email: tokenData.email,
       firstName: '',
       lastName: '',
-      roles: tokenData.roles,
+      role: tokenData.roles?.[0] || 'User',
       isActive: true,
-      lastLoginAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      lastLoginAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     this.currentUserSubject.next(user);
   }
 
   private updateCurrentUserFromUser(user: User): void {
     this.currentUserSubject.next(user);
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(user));
   }
 
   private loadUserFromStorage(): void {
-    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const userStr = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
     if (userStr && this.isAuthenticated()) {
       try {
         const user = JSON.parse(userStr);

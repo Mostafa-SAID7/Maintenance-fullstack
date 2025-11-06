@@ -3,7 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using FluentValidation;
 using CarMaintenance.Application.Behaviors;
 using AutoMapper;
+
 using System.Reflection;
+using CarMaintenance.Application.DTOs;
+using CarMaintenance.Domain.Entities;
 
 namespace CarMaintenance.Application.Configuration;
 
@@ -35,7 +38,6 @@ public static class ApplicationConfiguration
         // Add pipeline behaviors
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
 
         return services;
     }
@@ -57,27 +59,27 @@ public class CarMaintenanceProfile : Profile
 {
     public CarMaintenanceProfile()
     {
-        CreateMap<Domain.Entities.Car, DTOs.CarDto>();
-        CreateMap<DTOs.CreateCarDto, Domain.Entities.Car>();
-        CreateMap<DTOs.UpdateCarDto, Domain.Entities.Car>();
+        CreateMap<Car, CarDto>();
+        CreateMap<CreateCarDto, Car>();
+        CreateMap<UpdateCarDto, Car>();
 
-        CreateMap<Domain.Entities.Owner, DTOs.OwnerDto>();
-        CreateMap<DTOs.CreateOwnerDto, Domain.Entities.Owner>();
-        CreateMap<DTOs.UpdateOwnerDto, Domain.Entities.Owner>();
+        CreateMap<Owner, OwnerDto>();
+        CreateMap<CreateOwnerDto, Owner>();
+        CreateMap<UpdateOwnerDto, Owner>();
 
-        CreateMap<Domain.Entities.MaintenanceRecord, DTOs.MaintenanceRecordDto>();
-        CreateMap<DTOs.CreateMaintenanceRecordDto, Domain.Entities.MaintenanceRecord>();
-        CreateMap<DTOs.UpdateMaintenanceRecordDto, Domain.Entities.MaintenanceRecord>();
+        CreateMap<MaintenanceRecord, MaintenanceRecordDto>();
+        CreateMap<CreateMaintenanceRecordDto, MaintenanceRecord>();
+        CreateMap<UpdateMaintenanceRecordDto, MaintenanceRecord>();
 
-        CreateMap<Domain.Entities.ServiceType, DTOs.ServiceTypeDto>();
-        CreateMap<DTOs.CreateServiceTypeDto, Domain.Entities.ServiceType>();
-        CreateMap<DTOs.UpdateServiceTypeDto, Domain.Entities.ServiceType>();
+        CreateMap<ServiceType, ServiceTypeDto>();
+        CreateMap<CreateServiceTypeDto, ServiceType>();
+        CreateMap<UpdateServiceTypeDto, ServiceType>();
 
-        CreateMap<Domain.Entities.Notification, DTOs.NotificationDto>();
-        CreateMap<DTOs.CreateNotificationDto, Domain.Entities.Notification>();
-        CreateMap<DTOs.UpdateNotificationDto, Domain.Entities.Notification>();
+        CreateMap<Notification, NotificationDto>();
+        CreateMap<CreateNotificationDto, Notification>();
+        CreateMap<UpdateNotificationDto, Notification>();
 
         // PagedResult mapping
-        CreateMap(typeof(DTOs.PagedResult<>), typeof(DTOs.PagedResult<>));
+        CreateMap(typeof(PagedResult<>), typeof(PagedResult<>));
     }
 }

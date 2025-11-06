@@ -12,6 +12,8 @@ namespace CarMaintenance.Api.DTOs
         public string Color { get; set; } = string.Empty;
         public string OwnerId { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public bool IsActive { get; set; } = true;
         public DateTime? LastMaintenanceDate { get; set; }
         public string OwnerName { get; set; } = string.Empty;
     }

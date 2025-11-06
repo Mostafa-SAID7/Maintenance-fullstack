@@ -1,4 +1,5 @@
 using CarMaintenance.Application.Queries;
+using CarMaintenance.Shared.Models;
 using CarMaintenance.Application.DTOs;
 
 namespace CarMaintenance.Application.Queries.Cars;

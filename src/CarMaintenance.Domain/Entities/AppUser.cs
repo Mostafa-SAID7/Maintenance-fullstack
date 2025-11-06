@@ -18,6 +18,8 @@ public class AppUser : IdentityUser
 
     public DateTime? LastLoginAt { get; set; }
 
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     public bool IsActive { get; set; } = true;
 
     [MaxLength(50)]
@@ -35,6 +37,4 @@ public class AppUser : IdentityUser
     public string FullName => $"{FirstName} {LastName}";
     
     public bool HasRecentLogin => LastLoginAt.HasValue && LastLoginAt.Value > DateTime.UtcNow.AddDays(-30);
-    
-    public bool IsEmailVerified => EmailConfirmed;
 }

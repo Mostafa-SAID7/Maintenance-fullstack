@@ -1,6 +1,7 @@
 using MediatR;
 using CarMaintenance.Application.DTOs;
 using CarMaintenance.Domain.Entities;
+using FluentValidation;
 
 namespace CarMaintenance.Application.Commands.Cars;
 

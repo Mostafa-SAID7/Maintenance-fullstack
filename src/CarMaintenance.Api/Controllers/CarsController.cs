@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CarMaintenance.Api.DTOs;
-using CarMaintenance.Domain.Entities;
 using MediatR;
 using CarMaintenance.Shared.Models;
+using CarMaintenance.Application.Queries.Cars;
+using CarMaintenance.Application.Commands.Cars;
 
 namespace CarMaintenance.Api.Controllers;
 
@@ -21,6 +22,11 @@ public class CarsController : ControllerBase
     private readonly IMediator _mediator;
     private readonly ILogger<CarsController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the CarsController class
+    /// </summary>
+    /// <param name="mediator">The mediator instance</param>
+    /// <param name="logger">The logger instance</param>
     public CarsController(
         IMediator mediator,
         ILogger<CarsController> logger)
@@ -38,12 +44,20 @@ public class CarsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<CarDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetCars([FromQuery] GetCarsQuery query, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetCars(
+        [FromQuery] GetCarsQuery query,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Getting cars with filters: {Filters}", 
-                new { query.PageNumber, query.PageSize, query.SearchText });
+            _logger.LogInformation(
+                "Getting cars with filters: {Filters}",
+                new
+                {
+                    query.PageNumber,
+                    query.PageSize,
+                    query.SearchText
+                });
 
             var result = await _mediator.Send(query, cancellationToken);
 
@@ -102,7 +116,9 @@ public class CarsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(CarDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateCar([FromBody] CreateCarRequest request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> CreateCar(
+        [FromBody] CreateCarRequest request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -116,18 +132,17 @@ public class CarsController : ControllerBase
             }
 
             // Execute CQRS command
-            var command = new CreateCarCommand
-            {
-                Vin = request.Vin,
-                Make = request.Make,
-                Model = request.Model,
-                Year = request.Year,
-                LicensePlate = request.LicensePlate,
-                Color = request.Color,
-                Mileage = request.Mileage,
-                OwnerId = request.OwnerId,
-                UserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System"
-            };
+            var command = new CreateCarCommand(
+                request.Make,
+                request.Model,
+                request.Year,
+                request.Color,
+                request.LicensePlate,
+                request.Vin,
+                request.Mileage,
+                request.OwnerId.ToString(),
+                null
+            );
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -152,7 +167,10 @@ public class CarsController : ControllerBase
                 UpdatedAt = DateTime.UtcNow
             };
 
-            _logger.LogInformation("Car created successfully with ID: {CarId}, VIN: {Vin}", result.Id, result.Vin);
+            _logger.LogInformation(
+                "Car created successfully with ID: {CarId}, VIN: {Vin}",
+                result.Id,
+                result.Vin);
 
             return CreatedAtAction(nameof(GetCar), new { id = result.Id }, carDto);
         }
@@ -174,7 +192,10 @@ public class CarsController : ControllerBase
     [ProducesResponseType(typeof(CarDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateCar(Guid id, [FromBody] UpdateCarRequest request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> UpdateCar(
+        Guid id,
+        [FromBody] UpdateCarRequest request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -188,17 +209,17 @@ public class CarsController : ControllerBase
             }
 
             // Execute CQRS command
-            var command = new UpdateCarCommand
-            {
-                CarId = id,
-                Make = request.Make,
-                Model = request.Model,
-                Year = request.Year,
-                LicensePlate = request.LicensePlate,
-                Color = request.Color,
-                Mileage = request.Mileage,
-                UserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System"
-            };
+            var command = new UpdateCarCommand(
+                int.Parse(id.ToString()),
+                request.Make,
+                request.Model,
+                request.Year,
+                request.Color,
+                request.LicensePlate,
+                request.Mileage,
+                null,
+                ""
+            );
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -247,18 +268,19 @@ public class CarsController : ControllerBase
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteCar(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> DeleteCar(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation("Deleting car with ID: {CarId}", id);
 
             // Execute CQRS command
-            var command = new DeleteCarCommand
-            {
-                CarId = id,
-                UserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System"
-            };
+            var command = new DeleteCarCommand(
+                int.Parse(id.ToString()),
+                User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System"
+            );
 
             var result = await _mediator.Send(command, cancellationToken);
 
@@ -355,13 +377,44 @@ public class CarsController : ControllerBase
     /// </summary>
     public class CreateCarRequest
     {
+        /// <summary>
+        /// Gets or sets the vehicle identification number
+        /// </summary>
         public string Vin { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car make
+        /// </summary>
         public string Make { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car model
+        /// </summary>
         public string Model { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car year
+        /// </summary>
         public int Year { get; set; }
+
+        /// <summary>
+        /// Gets or sets the license plate
+        /// </summary>
         public string LicensePlate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car color
+        /// </summary>
         public string Color { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car mileage
+        /// </summary>
         public int Mileage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the owner ID
+        /// </summary>
         public Guid OwnerId { get; set; }
     }
 
@@ -370,11 +423,34 @@ public class CarsController : ControllerBase
     /// </summary>
     public class UpdateCarRequest
     {
+        /// <summary>
+        /// Gets or sets the car make
+        /// </summary>
         public string Make { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car model
+        /// </summary>
         public string Model { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car year
+        /// </summary>
         public int Year { get; set; }
+
+        /// <summary>
+        /// Gets or sets the license plate
+        /// </summary>
         public string LicensePlate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car color
+        /// </summary>
         public string Color { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the car mileage
+        /// </summary>
         public int Mileage { get; set; }
     }
 

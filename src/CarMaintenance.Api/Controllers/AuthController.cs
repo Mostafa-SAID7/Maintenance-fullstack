@@ -8,9 +8,9 @@ using System.Security.Claims;
 using System.Text;
 using CarMaintenance.Api.DTOs;
 using CarMaintenance.Domain.Entities;
-using CarMaintenance.Application.Commands.Cars;
-using MediatR;
 using CarMaintenance.Shared.Models;
+using CarMaintenance.Api.Models;
+using CarMaintenance.Api.Interfaces;
 
 namespace CarMaintenance.Api.Controllers;
 
@@ -22,30 +22,18 @@ namespace CarMaintenance.Api.Controllers;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/auth")]
 [Produces("application/json")]
-public class AuthController : ControllerBase
+public class AuthController(
+    IConfiguration configuration,
+    UserManager<AppUser> userManager,
+    SignInManager<AppUser> signInManager,
+    ILogger<AuthController> logger,
+    ICacheService cacheService) : ControllerBase
 {
-    private readonly IConfiguration _configuration;
-    private readonly UserManager<AppUser> _userManager;
-    private readonly SignInManager<AppUser> _signInManager;
-    private readonly ILogger<AuthController> _logger;
-    private readonly IMediator _mediator;
-    private readonly ICacheService _cacheService;
-
-    public AuthController(
-        IConfiguration configuration,
-        UserManager<AppUser> userManager,
-        SignInManager<AppUser> signInManager,
-        ILogger<AuthController> logger,
-        IMediator mediator,
-        ICacheService cacheService)
-    {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
-        _signInManager = signInManager ?? throw new ArgumentNullException(nameof(signInManager));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    }
+    private readonly IConfiguration _configuration = configuration;
+    private readonly UserManager<AppUser> _userManager = userManager;
+    private readonly SignInManager<AppUser> _signInManager = signInManager;
+    private readonly ILogger<AuthController> _logger = logger;
+    private readonly ICacheService _cacheService = cacheService;
 
     /// <summary>
     /// User registration with comprehensive validation
@@ -59,7 +47,9 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<RegisterDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Register([FromBody] RegisterDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterDto request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -111,7 +101,7 @@ public class AuthController : ControllerBase
             // Create response
             var response = new RegisterDto
             {
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 PhoneNumber = user.PhoneNumber,
@@ -120,12 +110,14 @@ public class AuthController : ControllerBase
 
             _logger.LogInformation("User registered successfully: {Email}", user.Email);
 
-            return CreatedAtAction(nameof(GetProfile), new { id = user.Id }, ApiResponse<RegisterDto>.Success(response, "User registered successfully"));
+            return CreatedAtAction(nameof(GetProfile), new { id = user.Id }, 
+                ApiResponse<RegisterDto>.Success(response, "User registered successfully"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during user registration for email: {Email}", request.Email);
-            return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Failure("Registration failed"));
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                ApiResponse<object>.Failure("Registration failed"));
         }
     }
 
@@ -142,7 +134,9 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> Login([FromBody] LoginDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Login(
+        [FromBody] LoginDto request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -185,7 +179,7 @@ public class AuthController : ControllerBase
             {
                 Token = accessToken,
                 RefreshToken = refreshToken,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 ExpiresAt = DateTime.UtcNow.AddHours(24), // Token expires in 24 hours
                 UserId = user.Id
             };
@@ -197,7 +191,8 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login for email: {Email}", request.Email);
-            return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Failure("Login failed"));
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                ApiResponse<object>.Failure("Login failed"));
         }
     }
 
@@ -213,7 +208,9 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<TokenDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> RefreshToken(
+        [FromBody] RefreshTokenDto request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -243,7 +240,7 @@ public class AuthController : ControllerBase
             {
                 Token = accessToken,
                 RefreshToken = refreshToken,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 ExpiresAt = DateTime.UtcNow.AddHours(24),
                 UserId = user.Id
             };
@@ -255,7 +252,8 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during token refresh");
-            return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Failure("Token refresh failed"));
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                ApiResponse<object>.Failure("Token refresh failed"));
         }
     }
 
@@ -289,7 +287,8 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during logout");
-            return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Failure("Logout failed"));
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                ApiResponse<object>.Failure("Logout failed"));
         }
     }
 
@@ -304,7 +303,9 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<RegisterDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetProfile(string id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetProfile(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -322,7 +323,7 @@ public class AuthController : ControllerBase
 
             var profile = new RegisterDto
             {
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 PhoneNumber = user.PhoneNumber
@@ -333,7 +334,8 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting user profile for ID: {UserId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Failure("Failed to get profile"));
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                ApiResponse<object>.Failure("Failed to get profile"));
         }
     }
 
@@ -350,7 +352,10 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateProfile(string id, [FromBody] RegisterDto request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> UpdateProfile(
+        string id,
+        [FromBody] RegisterDto request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -382,12 +387,13 @@ public class AuthController : ControllerBase
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                return BadRequest(ApiResponse<object>.Failure("Failed to update profile", result.Errors.Select(e => e.Description)));
+                return BadRequest(ApiResponse<object>.Failure("Failed to update profile", 
+                    result.Errors.Select(e => e.Description)));
             }
 
             var profile = new RegisterDto
             {
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 PhoneNumber = user.PhoneNumber
@@ -400,7 +406,8 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating user profile for ID: {UserId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Failure("Failed to update profile"));
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                ApiResponse<object>.Failure("Failed to update profile"));
         }
     }
 
@@ -416,13 +423,14 @@ public class AuthController : ControllerBase
         var roles = await _userManager.GetRolesAsync(user);
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.UserName!),
-            new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString())
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.UserName ?? string.Empty),
+            new(ClaimTypes.Email, user.Email ?? string.Empty),
+            new(JwtRegisteredClaimNames.Sub, user.Id),
+            new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Iat, 
+                new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString())
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -535,7 +543,7 @@ public class AuthController : ControllerBase
             return result;
         }
 
-        private bool IsValidEmail(string email)
+        private static bool IsValidEmail(string email)
         {
             try
             {
@@ -577,7 +585,7 @@ public class AuthController : ControllerBase
             return result;
         }
 
-        private bool IsValidEmail(string email)
+        private static bool IsValidEmail(string email)
         {
             try
             {
