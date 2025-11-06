@@ -1,40 +1,35 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using CarMaintenance.Api.Data;
-using CarMaintenance.Api.Models;
-using CarMaintenance.Infrastructure.Repositories;
-using CarMaintenance.Infrastructure.Services;
-using CarMaintenance.Infrastructure.Interceptors;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
+using CarMaintenance.Api.Models;
+using CarMaintenance.Infrastructure.Data;
+using CarMaintenance.Infrastructure.Repositories;
+using CarMaintenance.Api.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace CarMaintenance.Infrastructure.Configuration;
 
 /// <summary>
-/// Infrastructure layer configuration and service registration
+/// Infrastructure layer configuration and dependency injection setup
 /// </summary>
 public static class InfrastructureConfiguration
 {
     /// <summary>
-    /// Adds infrastructure layer services to the dependency injection container
+    /// Configure infrastructure services
     /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="configuration">The configuration instance</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services, 
+        IConfiguration configuration)
     {
         // Database Configuration
-        services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+        services.AddDbContext<AppDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new InvalidOperationException("Database connection string is not configured");
-            }
-
+            
             options.UseSqlServer(connectionString, sqlOptions =>
             {
                 sqlOptions.CommandTimeout(30);
@@ -44,42 +39,65 @@ public static class InfrastructureConfiguration
                     errorNumbersToAdd: null);
             });
 
-            // Enable sensitive data logging in development
-            if (serviceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment())
-            {
-                options.EnableSensitiveDataLogging();
-                options.LogTo(Console.WriteLine, LogLevel.Information);
-            }
-
-            // Add query tracking behavior
-            options.ConfigureWarnings(warnings =>
-            {
-                warnings.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.ConnectionOpened);
-                warnings.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.ConnectionClosed);
-            });
+            // Development specific configurations
+#if DEBUG
+            options.EnableSensitiveDataLogging();
+            options.LogTo(Console.WriteLine, LogLevel.Information);
+#endif
         });
 
-        // Repository Pattern
+        // Identity Configuration
+        services.AddIdentity<AppUser, IdentityRole>(options =>
+        {
+            options.Password.RequireDigit = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequiredLength = 6;
+            options.User.RequireUniqueEmail = true;
+            options.SignIn.RequireConfirmedEmail = false;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            options.Lockout.MaxFailedAccessAttempts = 5;
+        })
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders();
+
+        // JWT Authentication
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.SaveToken = true;
+            options.RequireHttpsMetadata = false;
+            options.TokenValidationParameters = new TokenValidationParameters()
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidAudience = configuration["JWT:ValidAudience"],
+                ValidIssuer = configuration["JWT:ValidIssuer"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"])),
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true
+            };
+        });
+
+        // Repository Registration
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-        // Specialized Repositories
-        services.AddScoped<ICarRepository, CarRepository>();
-        services.AddScoped<IOwnerRepository, OwnerRepository>();
-        services.AddScoped<IMaintenanceRecordRepository, MaintenanceRecordRepository>();
-        services.AddScoped<INotificationRepository, NotificationRepository>();
-        services.AddScoped<IServiceTypeRepository, ServiceTypeRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
+        // Infrastructure Services
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ICacheService, MemoryCacheService>();
+        services.AddScoped<IResilienceService, ResilienceService>();
 
-        // Repository Interceptors
-        services.AddScoped<UpdateAuditInterceptor>();
-        services.AddScoped<SoftDeleteInterceptor>();
-
-        // Caching Services
+        // Caching Configuration
         services.AddMemoryCache();
-        services.AddDistributedMemoryCache();
-
+        
         if (!string.IsNullOrEmpty(configuration.GetConnectionString("Redis")))
         {
             services.AddStackExchangeRedisCache(options =>
@@ -87,113 +105,39 @@ public static class InfrastructureConfiguration
                 options.Configuration = configuration.GetConnectionString("Redis");
                 options.InstanceName = "CarMaintenanceCache";
             });
-
-            services.AddSingleton<ICacheService, RedisCacheService>();
-        }
-        else
-        {
-            services.AddSingleton<ICacheService, MemoryCacheService>();
         }
 
-        // Database Migrations and Seed Data
-        services.AddScoped<IMigrationService, MigrationService>();
-        services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
-
-        // Query Optimization Services
-        services.AddScoped<IQueryOptimizationService, QueryOptimizationService>();
-        services.AddScoped<INPlusOneDetectionService, NPlusOneDetectionService>();
-
-        // Transaction Management
-        services.AddScoped<ITransactionManager, TransactionManager>();
-        services.AddScoped<IDatabaseTransactionInterceptor, DatabaseTransactionInterceptor>();
-
-        // Performance Monitoring
-        services.AddSingleton<DatabasePerformanceMonitor>();
-        services.AddScoped<DatabasePerformanceInterceptor>();
-
-        // Identity Configuration
-        services.AddScoped<IUserStore<AppUser>, UserStore<AppUser, IdentityRole, AppDbContext>>();
-        services.AddScoped<IRoleStore<IdentityRole>, RoleStore<IdentityRole, AppDbContext>>();
+        // Health Checks
+        services.AddHealthChecks()
+            .AddSqlServer(configuration.GetConnectionString("DefaultConnection"), name: "Database")
+            .AddRedis(configuration.GetConnectionString("Redis") ?? "localhost:6379", name: "Redis");
 
         return services;
     }
 
     /// <summary>
-    /// Applies database migrations and seed data
+    /// Configure infrastructure middleware
     /// </summary>
-    /// <param name="app">The web application</param>
-    /// <returns>The web application for chaining</returns>
-    public static async Task<WebApplication> EnsureDatabaseAsync(this WebApplication app)
+    public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
     {
-        using var scope = app.Services.CreateScope();
-        var migrationService = scope.ServiceProvider.GetRequiredService<IMigrationService>();
-        var databaseSeeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
-
+        // Database migrations and seeding
+        using var scope = app.ApplicationServices.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        
         try
         {
-            // Apply migrations
-            await migrationService.ApplyMigrationsAsync();
+            context.Database.Migrate();
             
-            // Seed database
-            await databaseSeeder.SeedAsync();
-            
-            return app;
+            // Seed initial data
+            SeedData.SeedAsync(context, userManager).Wait();
         }
         catch (Exception ex)
         {
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "Failed to initialize database");
-            throw;
+            logger.LogError(ex, "An error occurred while migrating or seeding the database");
         }
+
+        return app;
     }
-}
-
-/// <summary>
-/// Base interface for all repositories
-/// </summary>
-/// <typeparam name="T">The entity type</typeparam>
-public interface IRepository<T> where T : class
-{
-    Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<T?> FindAsync(System.Linq.Expressions.Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
-    Task<IEnumerable<T>> FindManyAsync(System.Linq.Expressions.Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
-    Task<int> CountAsync(System.Linq.Expressions.Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default);
-    Task<bool> ExistsAsync(System.Linq.Expressions.Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
-    Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
-    Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
-    Task<T> UpdateAsync(T entity, CancellationToken cancellationToken = default);
-    Task<IEnumerable<T>> UpdateRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
-    Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
-    Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
-    Task<IEnumerable<T>> GetPagedAsync(
-        System.Linq.Expressions.Expression<Func<T, bool>>? filter = null,
-        System.Linq.Expressions.Expression<Func<T, object>>? orderBy = null,
-        int skip = 0,
-        int take = 20,
-        CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Unit of Work pattern interface
-/// </summary>
-public interface IUnitOfWork : IDisposable
-{
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    Task BeginTransactionAsync(CancellationToken cancellationToken = default);
-    Task CommitTransactionAsync(CancellationToken cancellationToken = default);
-    Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
-    Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Cache service interface
-/// </summary>
-public interface ICacheService
-{
-    Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class;
-    Task SetAsync<T>(string key, T value, TimeSpan? expiry = null, CancellationToken cancellationToken = default) where T : class;
-    Task RemoveAsync(string key, CancellationToken cancellationToken = default);
-    Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default);
-    Task ClearAsync(CancellationToken cancellationToken = default);
 }

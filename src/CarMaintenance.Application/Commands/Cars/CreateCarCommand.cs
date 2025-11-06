@@ -1,225 +1,64 @@
-using CarMaintenance.Application.Commands;
+using MediatR;
 using CarMaintenance.Application.DTOs;
+using CarMaintenance.Domain.Entities;
 
 namespace CarMaintenance.Application.Commands.Cars;
 
 /// <summary>
 /// Command to create a new car
 /// </summary>
-public class CreateCarCommand : BaseCommand<CreateCarCommandResult>
-{
-    /// <summary>
-    /// Gets or sets the VIN (Vehicle Identification Number)
-    /// </summary>
-    public string Vin { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the make of the car
-    /// </summary>
-    public string Make { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the model of the car
-    /// </summary>
-    public string Model { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the year of the car
-    /// </summary>
-    public int Year { get; set; }
-
-    /// <summary>
-    /// Gets or sets the license plate
-    /// </summary>
-    public string LicensePlate { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the color of the car
-    /// </summary>
-    public string Color { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the mileage of the car
-    /// </summary>
-    public int Mileage { get; set; }
-
-    /// <summary>
-    /// Gets or sets the owner ID
-    /// </summary>
-    public Guid OwnerId { get; set; }
-
-    /// <summary>
-    /// Gets or sets additional notes about the car
-    /// </summary>
-    public string? Notes { get; set; }
-
-    /// <summary>
-    /// Validates the car creation command
-    /// </summary>
-    /// <returns>A validation result</returns>
-    public override ValidationResult Validate()
-    {
-        var result = base.Validate();
-
-        // Validate VIN
-        if (string.IsNullOrWhiteSpace(Vin))
-        {
-            result.AddError(nameof(Vin), "VIN is required");
-        }
-        else if (Vin.Length != 17)
-        {
-            result.AddError(nameof(Vin), "VIN must be exactly 17 characters long");
-        }
-
-        // Validate make
-        if (string.IsNullOrWhiteSpace(Make))
-        {
-            result.AddError(nameof(Make), "Make is required");
-        }
-
-        // Validate model
-        if (string.IsNullOrWhiteSpace(Model))
-        {
-            result.AddError(nameof(Model), "Model is required");
-        }
-
-        // Validate year
-        var currentYear = DateTime.UtcNow.Year + 1;
-        if (Year < 1886 || Year > currentYear)
-        {
-            result.AddError(nameof(Year), $"Year must be between 1886 and {currentYear}");
-        }
-
-        // Validate license plate
-        if (string.IsNullOrWhiteSpace(LicensePlate))
-        {
-            result.AddError(nameof(LicensePlate), "License plate is required");
-        }
-
-        // Validate color
-        if (string.IsNullOrWhiteSpace(Color))
-        {
-            result.AddError(nameof(Color), "Color is required");
-        }
-
-        // Validate mileage
-        if (Mileage < 0)
-        {
-            result.AddError(nameof(Mileage), "Mileage cannot be negative");
-        }
-
-        // Validate owner ID
-        if (OwnerId == Guid.Empty)
-        {
-            result.AddError(nameof(OwnerId), "Owner ID is required");
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Gets a string representation of the command
-    /// </summary>
-    /// <returns>A descriptive string</returns>
-    public override string ToString()
-    {
-        return $"{base.ToString()} - CreateCar: {Year} {Make} {Model} (VIN: {Vin}, License: {LicensePlate})";
-    }
-}
+public record CreateCarCommand(
+    string Make,
+    string Model,
+    int Year,
+    string? Color,
+    string? LicensePlate,
+    string VIN,
+    int Mileage,
+    string OwnerId,
+    int? ServiceTypeId
+) : IRequest<CarDto>;
 
 /// <summary>
-/// Result of the create car command
+/// Validator for CreateCarCommand
 /// </summary>
-public class CreateCarCommandResult
+public class CreateCarCommandValidator : AbstractValidator<CreateCarCommand>
 {
-    /// <summary>
-    /// Gets or sets the unique identifier of the created car
-    /// </summary>
-    public Guid Id { get; set; }
-
-    /// <summary>
-    /// Gets or sets the VIN of the created car
-    /// </summary>
-    public string Vin { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the make of the created car
-    /// </summary>
-    public string Make { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the model of the created car
-    /// </summary>
-    public string Model { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the year of the created car
-    /// </summary>
-    public int Year { get; set; }
-
-    /// <summary>
-    /// Gets or sets the license plate of the created car
-    /// </summary>
-    public string LicensePlate { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the color of the created car
-    /// </summary>
-    public string Color { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the current mileage of the created car
-    /// </summary>
-    public int Mileage { get; set; }
-
-    /// <summary>
-    /// Gets or sets the creation timestamp
-    /// </summary>
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether the operation was successful
-    /// </summary>
-    public bool IsSuccess { get; set; }
-
-    /// <summary>
-    /// Gets or sets any error messages
-    /// </summary>
-    public string? ErrorMessage { get; set; }
-
-    /// <summary>
-    /// Creates a successful result
-    /// </summary>
-    /// <param name="carDto">The created car data</param>
-    /// <returns>A successful result</returns>
-    public static CreateCarCommandResult Success(CarDto carDto)
+    public CreateCarCommandValidator()
     {
-        return new CreateCarCommandResult
-        {
-            Id = carDto.Id,
-            Vin = carDto.Vin,
-            Make = carDto.Make,
-            Model = carDto.Model,
-            Year = carDto.Year,
-            LicensePlate = carDto.LicensePlate,
-            Color = carDto.Color,
-            Mileage = carDto.Mileage,
-            CreatedAt = carDto.CreatedAt,
-            IsSuccess = true
-        };
-    }
+        RuleFor(x => x.Make)
+            .NotEmpty()
+            .MaximumLength(50)
+            .WithMessage("Make is required and must not exceed 50 characters");
 
-    /// <summary>
-    /// Creates a failure result
-    /// </summary>
-    /// <param name="errorMessage">The error message</param>
-    /// <returns>A failure result</returns>
-    public static CreateCarCommandResult Failure(string errorMessage)
-    {
-        return new CreateCarCommandResult
-        {
-            IsSuccess = false,
-            ErrorMessage = errorMessage
-        };
+        RuleFor(x => x.Model)
+            .NotEmpty()
+            .MaximumLength(50)
+            .WithMessage("Model is required and must not exceed 50 characters");
+
+        RuleFor(x => x.Year)
+            .NotEmpty()
+            .GreaterThanOrEqualTo(1900)
+            .LessThanOrEqualTo(DateTime.UtcNow.Year + 2)
+            .WithMessage("Year must be between 1900 and current year + 2");
+
+        RuleFor(x => x.VIN)
+            .NotEmpty()
+            .Length(17)
+            .WithMessage("VIN must be exactly 17 characters");
+
+        RuleFor(x => x.Mileage)
+            .NotEmpty()
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("Mileage must be greater than or equal to 0");
+
+        RuleFor(x => x.OwnerId)
+            .NotEmpty()
+            .WithMessage("Owner ID is required");
+
+        RuleFor(x => x.ServiceTypeId)
+            .GreaterThan(0)
+            .When(x => x.ServiceTypeId.HasValue)
+            .WithMessage("ServiceTypeId must be greater than 0 when specified");
     }
 }

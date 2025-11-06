@@ -7,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CarMaintenance.Api.DTOs;
-using CarMaintenance.Api.Models;
+using CarMaintenance.Domain.Entities;
 using CarMaintenance.Application.Commands.Cars;
 using MediatR;
 using CarMaintenance.Shared.Models;
