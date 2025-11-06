@@ -1,0 +1,95 @@
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+
+export class MileageValidator {
+  static minValue(min: number = 0): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      
+      if (value == null || value === '') {
+        return null; // Let required validator handle empty values
+      }
+
+      const numericValue = parseFloat(value);
+      
+      if (isNaN(numericValue)) {
+        return { mileageInvalid: 'Please enter a valid number' };
+      }
+
+      if (numericValue < min) {
+        return { mileageMin: `Mileage must be at least ${min}` };
+      }
+
+      return null;
+    };
+  }
+
+  static maxValue(max: number = 1000000): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      
+      if (value == null || value === '') {
+        return null; // Let required validator handle empty values
+      }
+
+      const numericValue = parseFloat(value);
+      
+      if (isNaN(numericValue)) {
+        return { mileageInvalid: 'Please enter a valid number' };
+      }
+
+      if (numericValue > max) {
+        return { mileageMax: `Mileage cannot exceed ${max.toLocaleString()}` };
+      }
+
+      return null;
+    };
+  }
+
+  static range(min: number = 0, max: number = 1000000): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      
+      if (value == null || value === '') {
+        return null; // Let required validator handle empty values
+      }
+
+      const numericValue = parseFloat(value);
+      
+      if (isNaN(numericValue)) {
+        return { mileageInvalid: 'Please enter a valid number' };
+      }
+
+      if (numericValue < min) {
+        return { mileageMin: `Mileage must be at least ${min.toLocaleString()}` };
+      }
+
+      if (numericValue > max) {
+        return { mileageMax: `Mileage cannot exceed ${max.toLocaleString()}` };
+      }
+
+      return null;
+    };
+  }
+
+  static decimalPlaces(places: number = 1): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      
+      if (value == null || value === '') {
+        return null;
+      }
+
+      const stringValue = value.toString();
+      const decimalIndex = stringValue.indexOf('.');
+      
+      if (decimalIndex !== -1) {
+        const decimalPlaces = stringValue.length - decimalIndex - 1;
+        if (decimalPlaces > places) {
+          return { mileageDecimal: `Mileage can have maximum ${places} decimal place${places !== 1 ? 's' : ''}` };
+        }
+      }
+
+      return null;
+    };
+  }
+}
