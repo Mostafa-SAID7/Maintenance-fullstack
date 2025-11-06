@@ -1,0 +1,175 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using CarMaintenance.Api.Utilities;
+
+namespace CarMaintenance.Api.Middleware;
+
+/// <summary>
+/// Global error handling middleware
+/// </summary>
+public class GlobalExceptionMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<GlobalExceptionMiddleware> _logger;
+    private readonly IWebHostEnvironment _environment;
+
+    public GlobalExceptionMiddleware(
+        RequestDelegate next,
+        ILogger<GlobalExceptionMiddleware> logger,
+        IWebHostEnvironment environment)
+    {
+        _next = next;
+        _logger = logger;
+        _environment = environment;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unhandled exception occurred while processing the request");
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = GetStatusCode(exception);
+
+        var response = new ApiResponse<object>
+        {
+            Success = false,
+            Message = GetErrorMessage(exception),
+            Errors = GetErrors(exception),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Add correlation ID for tracking
+        var correlationId = context.TraceIdentifier;
+        response.Data = null;
+
+        // Log error details
+        _logger.LogError(
+            exception,
+            "Error occurred with correlation ID: {CorrelationId}, Status Code: {StatusCode}",
+            correlationId,
+            context.Response.StatusCode);
+
+        var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        await context.Response.WriteAsync(jsonResponse);
+    }
+
+    private static int GetStatusCode(Exception exception)
+    {
+        return exception switch
+        {
+            ArgumentException or ArgumentNullException => StatusCodes.Status400BadRequest,
+            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            NotImplementedException => StatusCodes.Status501NotImplemented,
+            NotSupportedException => StatusCodes.Status400BadRequest,
+            TimeoutException => StatusCodes.Status408RequestTimeout,
+            DbUpdateException => StatusCodes.Status500InternalServerError,
+            InvalidOperationException => StatusCodes.Status409Conflict,
+            TaskCanceledException => StatusCodes.Status499ClientClosedRequest,
+            _ => StatusCodes.Status500InternalServerError
+        };
+    }
+
+    private static string GetErrorMessage(Exception exception)
+    {
+        return exception switch
+        {
+            ArgumentException => "Invalid request parameters",
+            UnauthorizedAccessException => "Authentication required",
+            NotImplementedException => "Feature not implemented",
+            NotSupportedException => "Operation not supported",
+            TimeoutException => "Request timeout",
+            DbUpdateException => "Database operation failed",
+            InvalidOperationException => "Invalid operation",
+            TaskCanceledException => "Request was cancelled",
+            _ => "An unexpected error occurred"
+        };
+    }
+
+    private static List<string> GetErrors(Exception exception)
+    {
+        var errors = new List<string>();
+
+        if (!string.IsNullOrEmpty(exception.Message))
+        {
+            errors.Add(exception.Message);
+        }
+
+        if (exception.InnerException != null)
+        {
+            errors.Add($"Inner error: {exception.InnerException.Message}");
+        }
+
+        if (exception.Data != null && exception.Data.Count > 0)
+        {
+            foreach (var key in exception.Data.Keys)
+            {
+                if (exception.Data[key] != null)
+                {
+                    errors.Add($"{key}: {exception.Data[key]}");
+                }
+            }
+        }
+
+        return errors;
+    }
+}
+
+/// <summary>
+/// Exception handling filter for controller actions
+/// </summary>
+public class ExceptionFilter : IExceptionFilter
+{
+    private readonly ILogger<ExceptionFilter> _logger;
+    private readonly IWebHostEnvironment _environment;
+
+    public ExceptionFilter(ILogger<ExceptionFilter> logger, IWebHostEnvironment environment)
+    {
+        _logger = logger;
+        _environment = environment;
+    }
+
+    public void OnException(ExceptionContext context)
+    {
+        _logger.LogError(
+            context.Exception,
+            "Exception occurred in {Controller}.{Action}",
+            context.RouteData.Values["controller"],
+            context.RouteData.Values["action"]);
+
+        var response = ApiResponse<object>.ErrorResult(
+            context.Exception.Message,
+            "An error occurred while processing your request");
+
+        context.Result = new ObjectResult(response)
+        {
+            StatusCode = GetStatusCode(context.Exception)
+        };
+    }
+
+    private static int GetStatusCode(Exception exception)
+    {
+        return exception switch
+        {
+            ArgumentException or ArgumentNullException => StatusCodes.Status400BadRequest,
+            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            NotImplementedException => StatusCodes.Status501NotImplemented,
+            _ => StatusCodes.Status500InternalServerError
+        };
+    }
+}

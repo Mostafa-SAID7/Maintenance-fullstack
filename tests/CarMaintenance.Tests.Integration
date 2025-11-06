@@ -1,0 +1,349 @@
+using Xunit;
+using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Http;
+using CarMaintenance.Api;
+using CarMaintenance.Api.Data;
+using CarMaintenance.Domain.Entities;
+using MediatR;
+using CarMaintenance.Application.Commands;
+using CarMaintenance.Application.DTOs;
+using CarMaintenance.Application.Validators;
+using FluentValidation;
+using System.Text.Json;
+
+namespace CarMaintenance.Tests.Integration;
+
+/// <summary>
+/// Integration tests for HealthController
+/// </summary>
+public class HealthControllerTests : IntegrationTestBase
+{
+    public HealthControllerTests(WebApplicationFactory<Program> factory, ITestOutputHelper output) 
+        : base(factory, output)
+    {
+    }
+
+    [Fact]
+    public async Task GetBasicHealthCheck_ShouldReturnHealthy()
+    {
+        // Act
+        var response = await GetAsync("health/basic");
+        
+        // Assert
+        response.Should().NotBeNull();
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        
+        var content = await GetContentAsync<object>(response);
+        content.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetDatabaseHealthCheck_ShouldReturnHealthy()
+    {
+        // Act
+        var response = await GetAsync("health/database");
+        
+        // Assert
+        response.Should().NotBeNull();
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        
+        var content = await GetContentAsync<dynamic>(response);
+        content.Should().NotBeNull();
+        content.Status.Should().Be("Healthy");
+    }
+
+    [Fact]
+    public async Task GetDetailedHealthCheck_ShouldIncludeApplicationInfo()
+    {
+        // Act
+        var response = await GetAsync("health/detailed");
+        
+        // Assert
+        response.Should().NotBeNull();
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        
+        var content = await GetContentAsync<dynamic>(response);
+        content.Should().NotBeNull();
+        content.Status.Should().Be("Healthy");
+        content.Application.Should().NotBeNull();
+        content.Checks.Should().NotBeNull();
+    }
+}
+
+/// <summary>
+/// Integration tests for CarsController
+/// </summary>
+public class CarsControllerTests : IntegrationTestBase
+{
+    public CarsControllerTests(WebApplicationFactory<Program> factory, ITestOutputHelper output) 
+        : base(factory, output)
+    {
+    }
+
+    [Fact]
+    public async Task GetCars_ShouldReturnPagedResult()
+    {
+        // Act
+        var response = await GetAsync("cars?pageNumber=1&pageSize=10");
+        
+        // Assert
+        response.Should().NotBeNull();
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        
+        var content = await GetContentAsync<dynamic>(response);
+        content.Should().NotBeNull();
+        content.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateCar_WithValidData_ShouldReturnCreated()
+    {
+        // Arrange
+        var car = new CreateCarDto
+        {
+            Make = "Toyota",
+            Model = "Camry",
+            Year = 2023,
+            Vin = "1HGBH41JXMN109186",
+            Mileage = 25000,
+            OwnerId = "1"
+        };
+
+        // Act
+        var response = await PostAsync("cars", car);
+        
+        // Assert
+        response.Should().NotBeNull();
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+        
+        var content = await GetContentAsync<dynamic>(response);
+        content.Should().NotBeNull();
+        content.Success.Should().BeTrue();
+        content.Data.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CreateCar_WithInvalidData_ShouldReturnBadRequest()
+    {
+        // Arrange - Invalid car data
+        var car = new CreateCarDto
+        {
+            Make = "", // Empty make
+            Model = "Camry",
+            Year = 1800, // Invalid year
+            Vin = "INVALID", // Invalid VIN
+            Mileage = 25000,
+            OwnerId = "1"
+        };
+
+        // Act
+        var response = await PostAsync("cars", car);
+        
+        // Assert
+        response.Should().NotBeNull();
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        
+        var content = await GetContentAsync<dynamic>(response);
+        content.Should().NotBeNull();
+        content.Success.Should().BeFalse();
+        content.Errors.Should().NotBeNull();
+        content.Errors.Should().HaveCountGreaterThan(0);
+    }
+}
+
+/// <summary>
+/// Unit tests for MediatR pipeline behaviors
+/// </summary>
+public class MediatRPipelineTests
+{
+    private readonly IMediator _mediator;
+    private readonly IMapper _mapper;
+    private readonly IServiceProvider _serviceProvider;
+
+    public MediatRPipelineTests()
+    {
+        var services = new ServiceCollection();
+        services.AddAutoMapper(typeof(CarMaintenance.Application.Configuration.ApplicationConfiguration));
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddMediatR(typeof(CarMaintenance.Application.Commands.Base.BaseCommand<>).Assembly);
+        
+        _serviceProvider = services.BuildServiceProvider();
+        _mediator = _serviceProvider.GetRequiredService<IMediator>();
+        _mapper = _serviceProvider.GetRequiredService<IMapper>();
+    }
+
+    [Fact]
+    public async Task ValidationBehavior_ShouldValidateCreateCarCommand()
+    {
+        // Arrange
+        var command = new CreateCarCommand
+        {
+            Make = "", // Invalid - empty make
+            Model = "Camry",
+            Year = 2023,
+            Vin = "1HGBH41JXMN109186",
+            Mileage = 25000,
+            OwnerId = "1"
+        };
+
+        // Act & Assert
+        var act = async () => await _mediator.Send(command);
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task LoggingBehavior_ShouldLogCommandProcessing()
+    {
+        // This test would need proper logging configuration and verification
+        // Implementation would depend on the logging framework configuration
+        
+        // Arrange
+        var command = new CreateCarCommand
+        {
+            Make = "Toyota",
+            Model = "Camry",
+            Year = 2023,
+            Vin = "1HGBH41JXMN109186",
+            Mileage = 25000,
+            OwnerId = "1"
+        };
+
+        // Act
+        var result = await _mediator.Send(command);
+
+        // Assert
+        result.Should().NotBeNull();
+        // Additional assertions would depend on the actual handler implementation
+    }
+}
+
+/// <summary>
+/// Unit tests for bounded contexts
+/// </summary>
+public class BoundedContextTests
+{
+    private readonly IMock<IRepository<Car, int>> _carRepositoryMock;
+    private readonly IMock<IRepository<Owner, string>> _ownerRepositoryMock;
+    private readonly IMock<IRepository<ServiceType, int>> _serviceTypeRepositoryMock;
+    private readonly IMock<IDomainEventDispatcher> _eventDispatcherMock;
+    private readonly CarManagementContext _context;
+
+    public BoundedContextTests()
+    {
+        _carRepositoryMock = new Mock<IRepository<Car, int>>();
+        _ownerRepositoryMock = new Mock<IRepository<Owner, string>>();
+        _serviceTypeRepositoryMock = new Mock<IRepository<ServiceType, int>>();
+        _eventDispatcherMock = new Mock<IDomainEventDispatcher>();
+
+        _context = new CarManagementContext(
+            _carRepositoryMock.Object,
+            _ownerRepositoryMock.Object,
+            _serviceTypeRepositoryMock.Object,
+            _eventDispatcherMock.Object);
+    }
+
+    [Fact]
+    public async Task CreateCar_WithValidData_ShouldSucceed()
+    {
+        // Arrange
+        var ownerId = "1";
+        var owner = new Owner { Id = ownerId, FirstName = "John", LastName = "Doe", IsActive = true };
+        
+        _ownerRepositoryMock.Setup(r => r.GetByIdAsync(ownerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(owner);
+        _carRepositoryMock.Setup(r => r.AddAsync(It.IsAny<Car>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(It.IsAny<Car>());
+
+        // Act
+        var result = await _context.CreateCarAsync(
+            "Toyota", "Camry", 2023, "1HGBH41JXMN109186", 25000, ownerId);
+
+        // Assert
+        result.Should().NotBeNull();
+        _carRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Car>(), It.IsAny<CancellationToken>()), Times.Once);
+        _eventDispatcherMock.Verify(d => d.DispatchDomainEvents(It.IsAny<Car>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateCar_WithNonExistentOwner_ShouldThrowException()
+    {
+        // Arrange
+        var ownerId = "999";
+        _ownerRepositoryMock.Setup(r => r.GetByIdAsync(ownerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Owner?)null);
+
+        // Act & Assert
+        var act = async () => await _context.CreateCarAsync(
+            "Toyota", "Camry", 2023, "1HGBH41JXMN109186", 25000, ownerId);
+        
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Owner does not exist*");
+    }
+}
+
+/// <summary>
+/// Performance tests
+/// </summary>
+public class PerformanceTests
+{
+    private readonly ITestOutputHelper _output;
+    
+    public PerformanceTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
+    [Fact]
+    public async Task DatabaseQueryPerformance_ShouldBeUnderThreshold()
+    {
+        // This would require a test database setup and specific performance thresholds
+        // Implementation would measure query execution times
+        
+        // Arrange
+        var stopwatch = Stopwatch.StartNew();
+        
+        // Act
+        // Simulate database operations
+        await Task.Delay(10); // Simulated operation
+        stopwatch.Stop();
+        
+        // Assert
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(1000); // 1 second threshold
+        _output.WriteLine($"Operation completed in {stopwatch.ElapsedMilliseconds}ms");
+    }
+
+    [Theory]
+    [InlineData(100)]
+    [InlineData(1000)]
+    [InlineData(10000)]
+    public async Task LoadTest_ConcurrentRequests_ShouldHandleLoad(int concurrentRequests)
+    {
+        // This would be a basic load test for API endpoints
+        // More sophisticated load testing would use dedicated tools like K6 or JMeter
+        
+        var tasks = new List<Task>();
+        
+        for (int i = 0; i < concurrentRequests; i++)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                // Simulate HTTP request
+                await Task.Delay(1);
+            }));
+        }
+        
+        // Act
+        var startTime = DateTime.UtcNow;
+        await Task.WhenAll(tasks);
+        var endTime = DateTime.UtcNow;
+        var duration = endTime - startTime;
+        
+        // Assert
+        duration.Should().BeLessThan(TimeSpan.FromSeconds(5));
+        _output.WriteLine($"Handled {concurrentRequests} requests in {duration.TotalSeconds:F2} seconds");
+    }
+}

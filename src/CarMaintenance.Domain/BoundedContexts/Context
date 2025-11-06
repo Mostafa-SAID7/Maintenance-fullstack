@@ -1,0 +1,222 @@
+using CarMaintenance.Domain.Entities;
+using CarMaintenance.Domain.Events;
+using CarMaintenance.Domain.ValueObjects;
+
+namespace CarMaintenance.Domain.BoundedContexts;
+
+/// <summary>
+/// Car Management Bounded Context
+/// Handles all car-related business logic and entities
+/// </summary>
+public class CarManagementContext
+{
+    private readonly IRepository<Car, int> _carRepository;
+    private readonly IRepository<Owner, string> _ownerRepository;
+    private readonly IRepository<ServiceType, int> _serviceTypeRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public CarManagementContext(
+        IRepository<Car, int> carRepository,
+        IRepository<Owner, string> ownerRepository,
+        IRepository<ServiceType, int> serviceTypeRepository,
+        IDomainEventDispatcher eventDispatcher)
+    {
+        _carRepository = carRepository;
+        _ownerRepository = ownerRepository;
+        _serviceTypeRepository = serviceTypeRepository;
+        _eventDispatcher = eventDispatcher;
+    }
+
+    public async Task<Car> CreateCarAsync(
+        string make, 
+        string model, 
+        int year, 
+        string vinValue,
+        int mileage,
+        string ownerId,
+        int? serviceTypeId = null)
+    {
+        // Validate business rules
+        await ValidateCarCreation(make, model, year, vinValue, ownerId, serviceTypeId);
+
+        // Create car aggregate
+        var vin = new Vin(vinValue);
+        var car = Car.Create(make, model, year, vin, mileage, ownerId, serviceTypeId);
+
+        // Save using unit of work pattern
+        var savedCar = await _carRepository.AddAsync(car);
+        
+        // Dispatch domain events
+        await _eventDispatcher.DispatchDomainEvents(savedCar);
+
+        return savedCar;
+    }
+
+    public async Task<Car> UpdateCarAsync(
+        int carId, 
+        string make, 
+        string model, 
+        int year, 
+        string vinValue,
+        int mileage,
+        int? serviceTypeId = null)
+    {
+        var car = await _carRepository.GetByIdAsync(carId);
+        if (car == null)
+        {
+            throw new InvalidOperationException($"Car with ID {carId} not found");
+        }
+
+        // Update car aggregate
+        var vin = new Vin(vinValue);
+        car.UpdateDetails(make, model, year, vin, mileage, serviceTypeId);
+
+        // Save changes
+        var updatedCar = await _carRepository.UpdateAsync(car);
+        
+        // Dispatch domain events
+        await _eventDispatcher.DispatchDomainEvents(updatedCar);
+
+        return updatedCar;
+    }
+
+    public async Task<Car> ScheduleMaintenanceAsync(int carId, int serviceTypeId, DateTime scheduledDate)
+    {
+        var car = await _carRepository.GetByIdAsync(carId);
+        if (car == null)
+        {
+            throw new InvalidOperationException($"Car with ID {carId} not found");
+        }
+
+        var serviceType = await _serviceTypeRepository.GetByIdAsync(serviceTypeId);
+        if (serviceType == null)
+        {
+            throw new InvalidOperationException($"Service type with ID {serviceTypeId} not found");
+        }
+
+        // Schedule maintenance
+        car.ScheduleMaintenance(serviceTypeId, scheduledDate);
+
+        // Save changes
+        var updatedCar = await _carRepository.UpdateAsync(car);
+        
+        // Dispatch domain events
+        await _eventDispatcher.DispatchDomainEvents(updatedCar);
+
+        return updatedCar;
+    }
+
+    private async Task ValidateCarCreation(
+        string make, string model, int year, string vinValue, string ownerId, int? serviceTypeId)
+    {
+        var validationErrors = new List<string>();
+
+        // Business rule: Car year cannot be in the future
+        if (year > DateTime.Now.Year + 1)
+        {
+            validationErrors.Add("Car year cannot be more than one year in the future");
+        }
+
+        // Business rule: Owner must exist
+        var owner = await _ownerRepository.GetByIdAsync(ownerId);
+        if (owner == null)
+        {
+            validationErrors.Add("Owner does not exist");
+        }
+
+        // Business rule: Service type must exist if specified
+        if (serviceTypeId.HasValue)
+        {
+            var serviceType = await _serviceTypeRepository.GetByIdAsync(serviceTypeId.Value);
+            if (serviceType == null)
+            {
+                validationErrors.Add("Service type does not exist");
+            }
+        }
+
+        if (validationErrors.Any())
+        {
+            throw new InvalidOperationException($"Validation failed: {string.Join(", ", validationErrors)}");
+        }
+    }
+}
+
+/// <summary>
+/// Maintenance Bounded Context
+/// Handles all maintenance-related business logic
+/// </summary>
+public class MaintenanceContext
+{
+    private readonly IRepository<MaintenanceRecord, int> _maintenanceRepository;
+    private readonly IRepository<Car, int> _carRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public MaintenanceContext(
+        IRepository<MaintenanceRecord, int> maintenanceRepository,
+        IRepository<Car, int> carRepository,
+        IDomainEventDispatcher eventDispatcher)
+    {
+        _maintenanceRepository = maintenanceRepository;
+        _carRepository = carRepository;
+        _eventDispatcher = eventDispatcher;
+    }
+
+    public async Task<MaintenanceRecord> CompleteMaintenanceAsync(
+        int carId, 
+        int serviceTypeId, 
+        DateTime serviceDate, 
+        int mileage, 
+        string description,
+        decimal cost,
+        string? notes = null)
+    {
+        var car = await _carRepository.GetByIdAsync(carId);
+        if (car == null)
+        {
+            throw new InvalidOperationException($"Car with ID {carId} not found");
+        }
+
+        // Create maintenance record
+        var maintenanceRecord = MaintenanceRecord.Create(
+            carId, serviceTypeId, serviceDate, mileage, description, cost, notes);
+
+        // Update car's last maintenance date
+        car.RecordMaintenance(maintenanceRecord);
+
+        // Save using unit of work
+        var savedRecord = await _maintenanceRepository.AddAsync(maintenanceRecord);
+        var updatedCar = await _carRepository.UpdateAsync(car);
+
+        // Dispatch domain events
+        await _eventDispatcher.DispatchDomainEvents(savedRecord);
+        await _eventDispatcher.DispatchDomainEvents(updatedCar);
+
+        return savedRecord;
+    }
+
+    public async Task<MaintenanceRecord> UpdateMaintenanceRecordAsync(
+        int maintenanceId, 
+        DateTime serviceDate, 
+        int mileage, 
+        string description, 
+        decimal cost, 
+        string? notes = null)
+    {
+        var record = await _maintenanceRepository.GetByIdAsync(maintenanceId);
+        if (record == null)
+        {
+            throw new InvalidOperationException($"Maintenance record with ID {maintenanceId} not found");
+        }
+
+        // Update maintenance record
+        record.UpdateDetails(serviceDate, mileage, description, cost, notes);
+
+        // Save changes
+        var updatedRecord = await _maintenanceRepository.UpdateAsync(record);
+        
+        // Dispatch domain events
+        await _eventDispatcher.DispatchDomainEvents(updatedRecord);
+
+        return updatedRecord;
+    }
+}

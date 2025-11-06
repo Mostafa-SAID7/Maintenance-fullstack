@@ -1,0 +1,217 @@
+namespace CarMaintenance.Api.Utilities;
+
+/// <summary>
+/// Response model for API operations
+/// </summary>
+public class ApiResponse<T>
+{
+    public T? Data { get; set; }
+    public string? Message { get; set; }
+    public bool Success { get; set; }
+    public List<string> Errors { get; set; } = new();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    public static ApiResponse<T> SuccessResult(T data, string? message = null)
+    {
+        return new ApiResponse<T>
+        {
+            Data = data,
+            Message = message,
+            Success = true
+        };
+    }
+
+    public static ApiResponse<T> ErrorResult(string error, string? message = null)
+    {
+        return new ApiResponse<T>
+        {
+            Message = message ?? "An error occurred",
+            Success = false,
+            Errors = new List<string> { error }
+        };
+    }
+
+    public static ApiResponse<T> ErrorResult(IEnumerable<string> errors, string? message = null)
+    {
+        return new ApiResponse<T>
+        {
+            Message = message ?? "An error occurred",
+            Success = false,
+            Errors = errors.ToList()
+        };
+    }
+}
+
+/// <summary>
+/// Generic paged response model
+/// </summary>
+public class PagedApiResponse<T> : ApiResponse<IEnumerable<T>>
+{
+    public int CurrentPage { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasNextPage => CurrentPage < TotalPages;
+    public bool HasPreviousPage => CurrentPage > 1;
+
+    public static PagedApiResponse<T> CreatePagedResult(
+        IEnumerable<T> data, 
+        int currentPage, 
+        int pageSize, 
+        int totalCount)
+    {
+        return new PagedApiResponse<T>
+        {
+            Data = data,
+            CurrentPage = currentPage,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Success = true,
+            Message = "Data retrieved successfully"
+        };
+    }
+}
+
+/// <summary>
+/// Request model for paged queries
+/// </summary>
+public class PagedRequest
+{
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string? SortBy { get; set; }
+    public string? SortDirection { get; set; } = "asc";
+    public string? Search { get; set; }
+}
+
+/// <summary>
+/// Response for health check results
+/// </summary>
+public class HealthCheckResponse
+{
+    public string Status { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public TimeSpan TotalDuration { get; set; }
+    public Dictionary<string, HealthCheckEntry> Entries { get; set; } = new();
+}
+
+public class HealthCheckEntry
+{
+    public string Status { get; set; } = string.Empty;
+    public TimeSpan Duration { get; set; }
+    public string? Description { get; set; }
+    public Dictionary<string, object>? Data { get; set; }
+}
+
+/// <summary>
+/// Constants for common application values
+/// </summary>
+public static class AppConstants
+{
+    public const string ApplicationName = "CarMaintenance API";
+    public const string ApiVersion = "v1";
+    public const string DefaultCulture = "en-US";
+    
+    public static class Pagination
+    {
+        public const int DefaultPageSize = 20;
+        public const int MaxPageSize = 100;
+        public const int MinPageSize = 1;
+    }
+    
+    public static class Validation
+    {
+        public const int MaxStringLength = 1000;
+        public const int MinPasswordLength = 6;
+        public const int MaxFileSize = 10 * 1024 * 1024; // 10MB
+    }
+    
+    public static class Cache
+    {
+        public const int DefaultExpirationMinutes = 60;
+        public const int ShortExpirationMinutes = 5;
+        public const int LongExpirationMinutes = 1440; // 24 hours
+    }
+    
+    public static class Security
+    {
+        public const int MaxLoginAttempts = 5;
+        public static readonly TimeSpan AccountLockoutDuration = TimeSpan.FromMinutes(15);
+    }
+}
+
+/// <summary>
+/// Helper methods for common operations
+/// </summary>
+public static class Utilities
+{
+    /// <summary>
+    /// Validates if a string is a valid email address
+    /// </summary>
+    public static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+        
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Generates a random password
+    /// </summary>
+    public static string GeneratePassword(int length = 8)
+    {
+        const string chars = "ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@$%*";
+        var random = new Random();
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
+    }
+
+    /// <summary>
+    /// Formats a file size in human readable format
+    /// </summary>
+    public static string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    /// <summary>
+    /// Calculates age from birth date
+    /// </summary>
+    public static int CalculateAge(DateTime birthDate)
+    {
+        var today = DateTime.Today;
+        var age = today.Year - birthDate.Year;
+        if (birthDate.Date > today.AddYears(-age)) age--;
+        return age;
+    }
+
+    /// <summary>
+    /// Validates if a string is a valid phone number
+    /// </summary>
+    public static bool IsValidPhoneNumber(string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+            return false;
+        
+        // Simple phone number validation - can be enhanced based on requirements
+        return System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, 
+            @"^[\+]?[1-9][\d]{0,15}$");
+    }
+}
