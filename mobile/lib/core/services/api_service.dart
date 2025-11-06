@@ -2,18 +2,18 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'models/api_response_model.dart';
-import '../models/user_model.dart';
+import '../models/api_response_model.dart';
+import '../../models/user_model.dart';
 
 class ApiService {
   static const String baseUrl = 'https://api.carmaintenance.com'; // Configure from environment
   static const String apiVersion = 'v1';
   static const String tokenKey = 'auth_token';
 
-  final Dio _dio = Dio();
+  final Dio _dio;
   final SharedPreferences _prefs;
 
-  ApiService(this._prefs) {
+  ApiService(this._dio, this._prefs) {
     _configureDio();
   }
 
@@ -28,33 +28,33 @@ class ApiService {
 
     // Add auth interceptor
     _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final token = getToken();
+      onRequest: (options, handler) async {
+        final token = await getToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
       },
-      onError: (error, handler) {
+      onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
           // Token expired, redirect to login
-          clearToken();
+          await clearToken();
         }
         handler.next(error);
       },
     ));
   }
 
-  String? getToken() {
+  Future<String?> getToken() async {
     return _prefs.getString(tokenKey);
   }
 
-  void setToken(String token) {
-    _prefs.setString(tokenKey, token);
+  Future<void> setToken(String token) async {
+    await _prefs.setString(tokenKey, token);
   }
 
-  void clearToken() {
-    _prefs.remove(tokenKey);
+  Future<void> clearToken() async {
+    await _prefs.remove(tokenKey);
   }
 
   // Cross-platform data serialization
@@ -78,7 +78,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     try {
-      if (requiresAuth && getToken() == null) {
+      if (requiresAuth && await getToken() == null) {
         return ApiResponse.error('Authentication required');
       }
 
@@ -88,13 +88,18 @@ class ApiService {
         queryParameters: queryParameters,
         options: Options(
           method: method,
-          headers: requiresAuth ? {'Authorization': 'Bearer ${getToken()}'} : null,
+          headers: requiresAuth ? {'Authorization': 'Bearer ${await getToken()}'} : null,
         ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (fromJson != null && response.data != null) {
-          final result = _deserializeData(response.data['data'], fromJson);
+          // Handle both possible response structures
+          final responseData = response.data is Map<String, dynamic> 
+              ? (response.data['data'] ?? response.data)
+              : response.data;
+          
+          final result = _deserializeData(responseData as Map<String, dynamic>?, fromJson);
           if (result != null) {
             return ApiResponse.success(result);
           }
@@ -104,17 +109,28 @@ class ApiService {
         return ApiResponse.error('Server error: ${response.statusCode}');
       }
     } on DioException catch (e) {
+      String errorMessage;
+      
       if (e.type == DioExceptionType.connectionTimeout || 
           e.type == DioExceptionType.receiveTimeout) {
-        return ApiResponse.error('Connection timeout. Please check your internet connection.');
+        errorMessage = 'Connection timeout. Please check your internet connection.';
       } else if (e.type == DioExceptionType.connectionError) {
-        return ApiResponse.error('No internet connection. Please check your network.');
+        errorMessage = 'No internet connection. Please check your network.';
       } else if (e.response?.statusCode == 401) {
-        clearToken();
-        return ApiResponse.error('Session expired. Please login again.');
+        await clearToken();
+        errorMessage = 'Session expired. Please login again.';
+      } else if (e.response?.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          errorMessage = responseData['message'] ?? responseData['error'] ?? 'Network error';
+        } else {
+          errorMessage = 'Network error';
+        }
       } else {
-        return ApiResponse.error(e.response?.data['message'] ?? 'Network error');
+        errorMessage = e.message ?? 'Network error';
       }
+      
+      return ApiResponse.error(errorMessage);
     } catch (e) {
       return ApiResponse.error('Unexpected error: $e');
     }
