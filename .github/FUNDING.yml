@@ -1,41 +1,38 @@
 # These are supported funding model platforms
 
-github: 
+github:
   - Mostafa-SAID7        # Your GitHub Sponsors username
 
-patreon: 
+patreon:
   MostafaSaid            # Your Patreon username
 
-open_collective: 
+open_collective:
   carcommunity           # Your Open Collective project name
 
-ko_fi: 
+ko_fi:
   MostafaSaid            # Your Ko-fi username
 
-tidelift: 
+tidelift:
   npm/ccommunity         # Example: Tidelift package/platform name
 
-community_bridge: 
+community_bridge:
   carcommunity-project   # Example project name on Community Bridge
 
-liberapay: 
+liberapay:
   MostafaSaid            # Your Liberapay username
 
-issuehunt: 
+issuehunt:
   MostafaSaid            # Your IssueHunt username
 
-lfx_crowdfunding: 
-  carcommunity-project   # Example: LFX Crowdfunding project name
-
-polar: 
+polar:
   carcommunity           # Your Polar username
 
-buy_me_a_coffee: 
+buy_me_a_coffee:
   mssaid356p            # Your Buy Me a Coffee username
 
-thanks_dev: 
-  MostafaSaid            # Your thanks.dev username
+thanks_dev:
+  u/gh/MostafaSaid       # Your thanks.dev username
 
-custom: 
-  - 'https://yourcompany.com/sponsor'
-  - 'https://yourportfolio.com/support'
+custom:
+  - 'https://github.com/sponsors/Mostafa-SAID7'
+  - 'https://patreon.com/MostafaSaid'

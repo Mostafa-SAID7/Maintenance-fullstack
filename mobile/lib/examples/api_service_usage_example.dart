@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/services/api_service.dart';
-import '../core/models/api_response_model.dart';
 import '../models/user_model.dart';
 import '../models/car_model.dart';
 

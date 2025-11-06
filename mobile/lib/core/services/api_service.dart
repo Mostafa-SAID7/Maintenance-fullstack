@@ -1,9 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'dart:io';
 import '../models/api_response_model.dart';
-import '../../models/user_model.dart';
 
 class ApiService {
   static const String baseUrl = 'https://api.carmaintenance.com'; // Configure from environment

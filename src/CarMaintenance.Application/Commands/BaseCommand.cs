@@ -4,9 +4,9 @@ using CarMaintenance.Shared.Models;
 namespace CarMaintenance.Application.Commands;
 
 /// <summary>
-/// Base abstract class for all CQRS commands
+/// Base class for all CQRS commands
 /// </summary>
-/// <typeparam name="TResult">The type of result returned by the command handler</typeparam>
+/// <typeparam name="TResult">The result type returned by the command handler</typeparam>
 public abstract class BaseCommand<TResult> : IRequest<TResult>
 {
     /// <summary>
@@ -50,8 +50,8 @@ public abstract class BaseCommand<TResult> : IRequest<TResult>
 }
 
 /// <summary>
-/// Base class for commands that don't return a result
+/// Base class for commands that return results
 /// </summary>
-public abstract class BaseCommand : BaseCommand<Unit>
+public abstract class BaseCommand : BaseCommand<object>
 {
 }

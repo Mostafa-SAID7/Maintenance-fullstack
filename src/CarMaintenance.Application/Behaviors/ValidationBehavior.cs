@@ -1,13 +1,12 @@
 using MediatR;
-using MediatR.Pipeline;
 using Microsoft.Extensions.Logging;
+using FluentValidation;
 using CarMaintenance.Shared.Models;
 
 namespace CarMaintenance.Application.Behaviors;
 
 /// <summary>
 /// MediatR pipeline behavior for validation
-/// Validates commands and queries before they are processed
 /// </summary>
 /// <typeparam name="TRequest">The request type</typeparam>
 /// <typeparam name="TResponse">The response type</typeparam>
@@ -15,64 +14,76 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
     where TRequest : IRequest<TResponse>
 {
     private readonly ILogger<ValidationBehavior<TRequest, TResponse>> _logger;
+    private readonly IEnumerable<FluentValidation.IValidator<TRequest>> _validators;
 
-    /// <summary>
-    /// Initializes a new instance of the ValidationBehavior class
-    /// </summary>
-    /// <param name="logger">The logger instance</param>
-    public ValidationBehavior(ILogger<ValidationBehavior<TRequest, TResponse>> logger)
+    public ValidationBehavior(
+        ILogger<ValidationBehavior<TRequest, TResponse>> logger,
+        IEnumerable<FluentValidation.IValidator<TRequest>> validators)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger;
+        _validators = validators;
     }
 
-    /// <summary>
-    /// Handles the validation process in the pipeline
-    /// </summary>
-    /// <param name="request">The request to validate</param>
-    /// <param name="next">The next handler in the pipeline</param>
-    /// <param name="cancellationToken">The cancellation token</param>
-    /// <returns>The response from the next handler</returns>
     public async Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        var requestType = typeof(TRequest).Name;
-
-        _logger.LogDebug("Starting validation for request {RequestType}", requestType);
-
-        // Check if the request has validation functionality
-        if (request is IValidatableRequest validatableRequest)
+        if (!_validators.Any())
         {
-            var validationResult = validatableRequest.Validate();
-            
-            if (!validationResult.IsValid)
-            {
-                _logger.LogWarning("Validation failed for request {RequestType}: {Errors}", 
-                    requestType, validationResult.GetErrorMessage());
-                
-                throw new ValidationException(
-                    $"Validation failed for {requestType}: {validationResult.GetErrorMessage()}", 
-                    validationResult);
-            }
+            return await next();
         }
 
-        // Log successful validation
-        _logger.LogDebug("Validation passed for request {RequestType}", requestType);
+        _logger.LogInformation(
+            "Validating request {RequestName}",
+            typeof(TRequest).Name);
 
-        // Continue to the next handler
+        var context = new FluentValidation.ValidationContext<TRequest>(request);
+
+        // Validate using FluentValidation
+        var validationResults = await Task.WhenAll(
+            _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+
+        var failures = validationResults
+            .Where(r => r.Errors.Any())
+            .SelectMany(r => r.Errors)
+            .ToList();
+
+        if (failures.Any())
+        {
+            _logger.LogWarning(
+                "Validation failed for request {RequestName} with {ErrorCount} errors",
+                typeof(TRequest).Name,
+                failures.Count);
+
+            // Log detailed validation errors
+            foreach (var error in failures)
+            {
+                _logger.LogWarning(
+                    "Validation error: {PropertyName} - {ErrorMessage}",
+                    error.PropertyName,
+                    error.ErrorMessage);
+            }
+
+            throw new ValidationException(
+                "One or more validation failures have occurred.",
+                failures);
+        }
+
         return await next();
     }
 }
 
 /// <summary>
-/// Interface to identify requests that can be validated
+/// Exception thrown when validation fails
 /// </summary>
-public interface IValidatableRequest
+public class ValidationException : Exception
 {
-    /// <summary>
-    /// Validates the request
-    /// </summary>
-    /// <returns>The validation result</returns>
-    ValidationResult Validate();
+    public List<FluentValidation.Results.ValidationFailure> Errors { get; }
+
+    public ValidationException(string message, List<FluentValidation.Results.ValidationFailure> errors)
+        : base(message)
+    {
+        Errors = errors;
+    }
 }
