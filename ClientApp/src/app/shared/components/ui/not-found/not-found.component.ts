@@ -51,13 +51,14 @@ import { RouterModule } from '@angular/router';
     }
     
     .error-title {
-      @include heading-2;
+      font-size: 2rem;
+      font-weight: 600;
       margin-bottom: var(--spacing-md);
       color: var(--text-primary);
     }
     
     .error-message {
-      @include body-text;
+      font-size: 1rem;
       color: var(--text-secondary);
       margin-bottom: var(--spacing-xl);
       line-height: var(--line-height-relaxed);

@@ -3,9 +3,12 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 export type SpinnerSize = 'small' | 'medium' | 'large';
 export type SpinnerColor = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
 
+import { CommonModule } from '@angular/common';
+
 @Component({
   selector: 'app-loading-spinner',
   standalone: true,
+  imports: [CommonModule],
   template: `
     <div class="spinner-wrapper" [class]="wrapperClass">
       <div 

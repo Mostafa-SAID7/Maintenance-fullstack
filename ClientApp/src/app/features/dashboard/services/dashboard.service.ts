@@ -8,7 +8,7 @@ import {
   PredictiveInsight,
   MaintenanceStats,
   OverviewCard 
-} from './models/dashboard.model';
+} from '../models/dashboard.model';
 
 @Injectable({
   providedIn: 'root'
@@ -251,7 +251,7 @@ export class DashboardService {
    * Exports dashboard data
    */
   exportDashboardData(format: 'pdf' | 'excel' = 'pdf'): Observable<Blob> {
-    return this.apiService.get(`/dashboard/export?format=${format}`, { responseType: 'blob' });
+    return this.apiService.download(`/dashboard/export?format=${format}`);
   }
 
   /**
