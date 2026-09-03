@@ -1,0 +1,14 @@
+# These owners will be the default reviewers for pull requests in those directories
+# Note: You can assign specific GitHub users or teams (e.g., @Mostafa-SAID7)
+
+# Default owner for everything in the repo
+*       @Mostafa-SAID7
+
+# Backend code
+/src/                   @Mostafa-SAID7
+
+# Frontend code
+/ClientApp/             @Mostafa-SAID7
+
+# GitHub Actions workflows and configuration
+/.github/               @Mostafa-SAID7
