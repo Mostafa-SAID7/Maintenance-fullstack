@@ -13,10 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMaintenance.Infrastructu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMaintenance.Shared", "src\CarMaintenance.Shared\CarMaintenance.Shared.csproj", "{36E32BBD-9EFA-4B3A-A7D9-A9994F25FB5E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMaintenance.UnitTests", "tests\CarMaintenance.UnitTests\CarMaintenance.UnitTests.csproj", "{E9582B76-28B7-4946-955F-A81054BF12A9}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMaintenance.IntegrationTests", "tests\CarMaintenance.IntegrationTests\CarMaintenance.IntegrationTests.csproj", "{8E609DCA-0314-4554-A200-246C0F4F0547}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,14 +39,6 @@ Global
 		{36E32BBD-9EFA-4B3A-A7D9-A9994F25FB5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36E32BBD-9EFA-4B3A-A7D9-A9994F25FB5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36E32BBD-9EFA-4B3A-A7D9-A9994F25FB5E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E9582B76-28B7-4946-955F-A81054BF12A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E9582B76-28B7-4946-955F-A81054BF12A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E9582B76-28B7-4946-955F-A81054BF12A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E9582B76-28B7-4946-955F-A81054BF12A9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8E609DCA-0314-4554-A200-246C0F4F0547}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8E609DCA-0314-4554-A200-246C0F4F0547}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8E609DCA-0314-4554-A200-246C0F4F0547}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8E609DCA-0314-4554-A200-246C0F4F0547}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

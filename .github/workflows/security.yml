@@ -1,0 +1,30 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'ClientApp/**'
+  schedule:
+    - cron: '30 2 * * 0' # Every Sunday at 2:30 AM
+
+jobs:
+  security-scan:
+    name: CodeQL Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: csharp, javascript
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3

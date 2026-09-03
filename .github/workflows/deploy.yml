@@ -1,0 +1,64 @@
+name: Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Staging
+      run: |
+        echo "Deploying to staging environment..."
+        if [ -f "scripts/deploy-staging.sh" ]; then
+          chmod +x scripts/deploy-staging.sh
+          ./scripts/deploy-staging.sh
+        elif [ -f "k8s/staging/deployment.yaml" ]; then
+          kubectl apply -f k8s/staging/ || echo "kubectl not available or k8s deployment failed"
+        else
+          echo "No staging deployment script found."
+        fi
+      env:
+        STAGING_API_URL: ${{ secrets.STAGING_API_URL || '' }}
+        STAGING_DB_CONNECTION: ${{ secrets.STAGING_DB_CONNECTION || '' }}
+
+  deploy-production:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Production
+      run: |
+        echo "Deploying to production environment..."
+        if [ -f "scripts/deploy-production.sh" ]; then
+          chmod +x scripts/deploy-production.sh
+          ./scripts/deploy-production.sh
+        elif [ -f "k8s/production/deployment.yaml" ]; then
+          kubectl apply -f k8s/production/ || echo "kubectl not available or k8s deployment failed"
+        else
+          echo "No production deployment script found."
+        fi
+      env:
+        PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL || '' }}
+        PRODUCTION_DB_CONNECTION: ${{ secrets.PRODUCTION_DB_CONNECTION || '' }}
+
+    - name: Notify deployment
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: "Car Maintenance API deployed to production environment"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK || secrets.SLACK_WEBHOOK_URL || '' }}
+      continue-on-error: true

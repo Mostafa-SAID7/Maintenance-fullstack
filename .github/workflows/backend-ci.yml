@@ -1,0 +1,46 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'CarCommun.sln'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'CarCommun.sln'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build:
+    name: Build .NET Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-packages-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          nuget-packages-${{ runner.os }}-
+
+    - name: Restore dependencies
+      run: dotnet restore CarCommun.sln
+
+    - name: Build solution
+      run: dotnet build CarCommun.sln --configuration Release --no-restore

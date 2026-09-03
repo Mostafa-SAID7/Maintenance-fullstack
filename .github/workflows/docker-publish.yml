@@ -1,0 +1,67 @@
+name: Docker Publish
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'ClientApp/**'
+      - 'Dockerfile'
+      - '.github/workflows/docker-publish.yml'
+
+jobs:
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check if API Dockerfile exists
+      id: check_api_dockerfile
+      run: |
+        if [ -f "src/CarMaintenance.Api/Dockerfile" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "API Dockerfile not found"
+        fi
+
+    - name: Build and push API
+      if: steps.check_api_dockerfile.outputs.exists == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./src/CarMaintenance.Api/Dockerfile
+        push: true
+        tags: ghcr.io/${{ github.repository_owner }}/carmaintenance-api:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/carmaintenance-api:latest
+
+    - name: Check if Frontend Dockerfile exists
+      id: check_frontend_dockerfile
+      run: |
+        if [ -f "ClientApp/Dockerfile" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Frontend Dockerfile not found"
+        fi
+
+    - name: Build and push Frontend
+      if: steps.check_frontend_dockerfile.outputs.exists == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: ./ClientApp
+        file: ./ClientApp/Dockerfile
+        push: true
+        tags: ghcr.io/${{ github.repository_owner }}/carmaintenance-frontend:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/carmaintenance-frontend:latest
