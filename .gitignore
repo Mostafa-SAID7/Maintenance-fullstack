@@ -58,7 +58,8 @@ obj/
 *.exe
 *.pdb
 *.xml
-*.json
+*.deps.json
+*.runtimeconfig.json
 
 # Angular build outputs
 ClientApp/dist/
