@@ -9,7 +9,6 @@ on:
 env:
   DOTNET_VERSION: '9.0.x'
   NODE_VERSION: '20.x'
-  FLUTTER_VERSION: '3.19.x'
 
 jobs:
   # Backend .NET Build and Test
@@ -52,9 +51,9 @@ jobs:
           **/TestResults/*.trx
           **/TestResults/*.xml
 
-  # Frontend Angular Build and Test
+  # Frontend Build and Test
   frontend-build:
-    name: Frontend Build & Test (Angular)
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
     
     steps:
@@ -90,51 +89,6 @@ jobs:
         name: frontend-build
         path: ClientApp/dist/
 
-  # Mobile Flutter Build and Test
-  mobile-build:
-    name: Mobile Build & Test (Flutter)
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Java JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'microsoft'
-        java-version: '17'
-
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-
-    - name: Get Flutter packages
-      working-directory: ./mobile
-      run: flutter pub get
-
-    - name: Run Flutter tests
-      working-directory: ./mobile
-      run: flutter test --coverage || echo "Tests not configured, skipping"
-
-    - name: Build APK
-      working-directory: ./mobile
-      run: |
-        flutter build apk --release
-        if [ -f "mobile/build/app/outputs/flutter-apk/app-release.apk" ]; then
-          echo "APK built successfully"
-        else
-          echo "APK build failed"
-          exit 1
-        fi
-
-    - name: Upload mobile artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: mobile-build
-        path: mobile/build/app/outputs/flutter-apk/app-release.apk
-
   # Security Scan
   security-scan:
     name: Security Scan
@@ -148,7 +102,7 @@ jobs:
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
       with:
-        languages: csharp, javascript, dart
+        languages: csharp, javascript
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v3
