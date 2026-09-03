@@ -9,6 +9,10 @@ jobs:
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     
     steps:
       - name: Checkout
@@ -19,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "22.x"
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
