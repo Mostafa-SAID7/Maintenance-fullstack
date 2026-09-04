@@ -51,9 +51,9 @@ export class AuthService {
     return this.http.post<ApiResponse<TokenResponse>>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap(response => {
-          if (response.Success && response.Data) {
-            this.setAuthData(response.Data);
-            this.updateCurrentUser(response.Data);
+          if (response.success && response.data) {
+            this.setAuthData(response.data);
+            this.updateCurrentUser(response.data);
           }
         }),
         catchError(this.handleError)
@@ -67,9 +67,9 @@ export class AuthService {
     return this.http.post<ApiResponse<TokenResponse>>(`${this.apiUrl}/register`, userData)
       .pipe(
         tap(response => {
-          if (response.Success && response.Data) {
-            this.setAuthData(response.Data);
-            this.updateCurrentUser(response.Data);
+          if (response.success && response.data) {
+            this.setAuthData(response.data);
+            this.updateCurrentUser(response.data);
           }
         }),
         catchError(this.handleError)
@@ -89,9 +89,9 @@ export class AuthService {
       refreshToken
     }).pipe(
       tap(response => {
-        if (response.Success && response.Data) {
-          this.setAuthData(response.Data);
-          this.updateCurrentUser(response.Data);
+        if (response.success && response.data) {
+          this.setAuthData(response.data);
+          this.updateCurrentUser(response.data);
         }
       }),
       catchError(error => {
@@ -162,8 +162,8 @@ export class AuthService {
     return this.http.put<ApiResponse<User>>(`${environment.apiUrl}/users/profile`, userData)
       .pipe(
         tap(response => {
-          if (response.Success && response.Data) {
-            this.updateCurrentUserFromUser(response.Data);
+          if (response.success && response.data) {
+            this.updateCurrentUserFromUser(response.data);
           }
         }),
         catchError(this.handleError)

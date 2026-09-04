@@ -70,6 +70,13 @@ export interface MaintenanceStats {
     period: string;
     frequency: number;
   }>;
+  serviceTypeBreakdown?: any[];
+  carCostAnalysis?: any[];
+  totalCost?: number;
+  monthlyCost?: number;
+  averageCost?: number;
+  totalRecords?: number;
+  trendPercentage?: number;
 }
 
 export interface OverviewCard {

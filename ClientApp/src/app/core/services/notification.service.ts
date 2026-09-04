@@ -332,7 +332,7 @@ export class NotificationService {
   private refreshNotifications(): void {
     this.getUnreadCount().subscribe({
       next: (response) => {
-        if (response.success && response.data !== null) {
+        if (response.success && response.data !== null && response.data !== undefined) {
           this.unreadCountSubject.next(response.data);
         }
       },
